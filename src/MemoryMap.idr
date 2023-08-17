@@ -16,8 +16,8 @@ inRange :
      (from : Nat)
   -> (to : Nat)
   -> (addr : Nat)
-  -> (lower : from `LTE` addr)
-  -> (upper : addr `LTE` to)
+  -> (0 lower : from `LTE` addr)
+  -> (0 upper : addr `LTE` to)
   -> Addr from to
 inRange from to addr lower upper = Element (addr `minus` from) $ LTESucc $ minusLteMonotone upper
 
@@ -46,9 +46,12 @@ memoryMap units unit0 = MkMemoryUnit (\addr => read (find addr) ()) (\addr => wr
     find addr = go units
       where
         go : List (MapEntry m a) -> MemoryUnit m () a
-        go (MkMapEntry from to unit :: units) = case (from `maybeLTE` addr, addr `maybeLTE` to) of
-           (Just p, Just q) => map (\() => inRange from to addr p q) unit
-           _ => go units
+        go (MkMapEntry from to unit :: units) = case (from <= addr, addr <= to) of
+          (True, True) =>
+            let 0 lower = fromMaybe (assert_total $ idris_crash "p") $ from `maybeLTE` addr
+                0 upper = fromMaybe (assert_total $ idris_crash "q") $ addr `maybeLTE` to
+            in map (\() => inRange from to addr lower upper) unit
+          _ => go units
         go [] = unit0
 
 export
