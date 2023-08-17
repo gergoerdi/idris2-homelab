@@ -21,12 +21,13 @@ content : St -> Node Ev
 content s =
   div []
     [ p [] [Text $ show s.romAddrs]
-    -- , button [onClick LoadMainROM] [Text "Load ROM"]
+    , button [onClick Step] [Text "Turn the CPU crank"]
     ]
 
 export
 update : Ev -> St -> St
 update Init = id
+update Step = id
 update (GotCPU cpu) = { cpu := Just cpu }
 update (RomSpy addr) = { romAddrs $= (addr::) }
 
@@ -41,7 +42,7 @@ view machine Init s = C $ \h => do
   let core = memoryMappedOnly $ HL2.MemoryMap.memoryMap {machine = machine} (runJS . h)
   cpu <- liftIO $ initCPU core
   h $ GotCPU cpu
-view machine (GotCPU _) s = C $ \h => do
+view machine Step s = C $ \h => do
   let cpu = fromMaybe (assert_total $ idris_crash "cpu") s.cpu
   cnt <- liftIO $ runInstruction cpu
   ($ h) . run $
