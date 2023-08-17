@@ -28,8 +28,8 @@ record MemoryUnit (m : Type -> Type) (addr : Type) (a : Type) where
   write : addr -> a -> m ()
 
 export
-map : (addr' -> addr) -> MemoryUnit m addr a -> MemoryUnit m addr' a
-map f = { read $= (. f), write $= (. f) }
+contramap : (addr' -> addr) -> MemoryUnit m addr a -> MemoryUnit m addr' a
+contramap f = { read $= (. f), write $= (. f) }
 
 public export
 record MapEntry (m : Type -> Type) (a : Type) where
@@ -50,7 +50,7 @@ memoryMap units unit0 = MkMemoryUnit (\addr => read (find addr) ()) (\addr => wr
           (True, True) =>
             let 0 lower = fromMaybe (assert_total $ idris_crash "p") $ from `maybeLTE` addr
                 0 upper = fromMaybe (assert_total $ idris_crash "q") $ addr `maybeLTE` to
-            in map (\() => inRange from to addr lower upper) unit
+            in contramap (\() => inRange from to addr lower upper) unit
           _ => go units
         go [] = unit0
 

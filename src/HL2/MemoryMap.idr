@@ -33,7 +33,7 @@ interface Monad m => HasTape m where
 
 public export
 memoryMap : HasIO m => (machine : Machine) => (queueEvent : Ev -> m ()) -> MemoryUnit m Bits16 Bits8
-memoryMap queueEvent = map cast $ memoryMap
+memoryMap queueEvent = contramap cast $ memoryMap
   [ MkMapEntry{ from = 0x0000, to = 0x1fff, unit = theROM } -- rom mainROM }
   , MkMapEntry{ from = 0x3800, to = 0x39ff, unit = unconnected 0x00 } -- TODO: reset button
   -- , MkMapEntry{ from = 0x3a00, to = 0x3aff, unit = readOnly $ pure . keyboardByte keyState . addressByte }
