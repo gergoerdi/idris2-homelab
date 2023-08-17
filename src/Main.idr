@@ -53,6 +53,7 @@ view machine _ s = child Body $ content s
 
 public export
 covering
+%export "javascript:startUI"
 startUI : ArrayBuffer -> ArrayBuffer -> IO ()
 startUI mainBuf charBuf = do
   mainROM <- arrayDataFrom $ the UInt8Array (cast mainBuf)
@@ -67,9 +68,6 @@ startUI mainBuf charBuf = do
   runMVC update (view machine) (putStrLn . dispErr) Init $
     MkSt{ cpu = Nothing, romAddrs = [] }
 
-%foreign "javascript:lambda: f => () => prepareUI(f)"
-prepareUI : (ArrayBuffer -> ArrayBuffer -> IO ()) -> IO ()
-
 covering
 main : IO ()
-main = prepareUI startUI
+main = pure ()
