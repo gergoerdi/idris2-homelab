@@ -1,0 +1,70 @@
+body {
+    padding: 20px;
+    margin: 0;
+    overflow: hidden;
+}
+
+.flexrow {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: stretch;
+    gap: 10px;
+}
+
+.flexcol {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+    gap: 10px;
+}
+
+#crt {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;    
+}
+
+#tape-monitor {
+    display: block;
+    width: 2em;
+}
+
+.centered {
+    display: block;
+    margin-left: auto; margin-right: auto;
+}
+
+.fullscreen {
+    height: 100vh;
+}
+
+dialog {
+    min-height: 80vh;
+    min-width: 100vh;
+    box-shadow: 5px 5px 12px rgb(0,0,0);
+    border: none;
+}
+
+dialog::backdrop {
+    background: rgba(0, 0, 0, 0.45);
+}
+
+#canvas-container {
+    position: relative;
+    height: calc(100vh - 9em); /* Subtract the height of the header & footer */
+}
+
+#canvas-container canvas {
+    position: absolute;
+    top: 0;
+    object-fit: contain;
+    left: 0;
+    margin-left: auto;
+    right: 0;
+    margin-right: auto;
+}
+
+#tape-filesel .card:hover {
+    background: var(--bs-light);
+}

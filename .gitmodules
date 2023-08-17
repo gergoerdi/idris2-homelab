@@ -1,0 +1,3 @@
+[submodule "js/Z80.js"]
+	path = js/import/Z80.js
+	url = git@github.com:DrGoldfire/Z80.js.git

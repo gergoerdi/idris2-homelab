@@ -1,0 +1,13 @@
+package homelab
+version    = 0.0.1
+depends    = dom-mvc
+           , contrib
+           , finite
+           , bytestring
+
+sourcedir  = "src"
+opts       = "--codegen javascript"
+
+
+main       = Main
+executable = "main.js"
