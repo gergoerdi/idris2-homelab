@@ -1,6 +1,7 @@
 module HL2.MemoryMap
 
 import Data.So
+import Ev
 import MemoryMap
 import Data.Buffer.Index
 import Data.ByteVect
@@ -31,9 +32,9 @@ interface Monad m => HasTape m where
 --   keyState : m KeyState
 
 public export
-memoryMap : HasIO m => (machine : Machine) => MemoryUnit m Bits16 Bits8
-memoryMap = map cast $ memoryMap
-  [ MkMapEntry{ from = 0x0000, to = 0x1fff, unit = rom mainROM }
+memoryMap : HasIO m => (machine : Machine) => (queueEvent : Ev -> m ()) -> MemoryUnit m Bits16 Bits8
+memoryMap queueEvent = map cast $ memoryMap
+  [ MkMapEntry{ from = 0x0000, to = 0x1fff, unit = theROM } -- rom mainROM }
   , MkMapEntry{ from = 0x3800, to = 0x39ff, unit = unconnected 0x00 } -- TODO: reset button
   -- , MkMapEntry{ from = 0x3a00, to = 0x3aff, unit = readOnly $ pure . keyboardByte keyState . addressByte }
   , MkMapEntry{ from = 0x3b00, to = 0x3bff, unit = unconnected 0x00 } -- TODO: ??
@@ -45,6 +46,15 @@ memoryMap = map cast $ memoryMap
   -- , MkMapEntry{ from = 0xe000, to = 0xffff, unit = readOnly video_scan }
   ]
   (unconnected 0xff)
+  where
+    theROM : MemoryUnit m (Addr 0x0000 0x1fff) Bits8
+    theROM = MkMemoryUnit
+      { read = \addr@(Element i _) => do
+             queueEvent $ RomSpy (cast i)
+             read (rom mainROM) addr
+      , write = write (rom mainROM)
+      }
+
   -- where
   --   video_scan : Addr 0xe000 0xffff -> m Bits8
   --   video_scan addr = do

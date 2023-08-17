@@ -16,32 +16,32 @@ keymap =
   , [ Just "KeyX",     Just "KeyY",         Just "KeyZ",   Nothing,       Nothing,       Just "Semicolon",   Nothing,       Nothing          ]
   ]
 
-readRow : KeyState -> Vect 8 (Maybe String) -> Bits8
-readRow keyState row = ?rr
+-- readRow : KeyState -> Vect 8 (Maybe String) -> Bits8
+-- readRow keyState row = ?rr
 
--- function read_row(keystate, row) {
---     let val = 0;
---     for (key of row) {
---         val >>= 1;
---         if (!(key && keystate[key]))
---             val |= 0x80;
---     }
---     return val;
--- }
+-- -- function read_row(keystate, row) {
+-- --     let val = 0;
+-- --     for (key of row) {
+-- --         val >>= 1;
+-- --         if (!(key && keystate[key]))
+-- --             val |= 0x80;
+-- --     }
+-- --     return val;
+-- -- }
 
-public export
-keyboardByte : KeyState -> Bits8 -> Bits8
-keyboardByte keyState addr = ?kb
+-- public export
+-- keyboardByte : KeyState -> Bits8 -> Bits8
+-- keyboardByte keyState addr = ?kb
 
--- function keyboard_byte(keystate, addr) {
---     let val = 0xff;
+-- -- function keyboard_byte(keystate, addr) {
+-- --     let val = 0xff;
 
---     addr &= 0xff;
---     for (row of keymap) {
---         if ((addr & 1) == 0)
---             val &= read_row(keystate, row);
---         addr >>= 1;
---     }
+-- --     addr &= 0xff;
+-- --     for (row of keymap) {
+-- --         if ((addr & 1) == 0)
+-- --             val &= read_row(keystate, row);
+-- --         addr >>= 1;
+-- --     }
 
---     return val;
--- }
+-- --     return val;
+-- -- }
