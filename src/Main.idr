@@ -20,8 +20,8 @@ record St where
 content : St -> Node Ev
 content s =
   div []
-    [ p [] [Text $ show s.romAddrs]
-    , button [onClick Step] [Text "Turn the CPU crank"]
+    [ button [onClick Step] [Text "Turn the CPU crank"]
+    , p [] [Text $ show s.romAddrs]
     ]
 
 export
@@ -52,6 +52,27 @@ view machine _ s = child Body $ content s
 -- view LoadMainROM s = request GET [] (dataFile "rom.bin") Empty ?e1 Nothing
 -- view LoadCharROM s = request GET [] (dataFile "charset.bin") Empty ?e2 Nothing
 
+partial
+untilIO : acc -> (acc -> IO (Either acc r)) -> IO r
+untilIO acc0 step = fromPrim $ go acc0
+  where
+    go : acc -> PrimIO r
+    go acc w =
+      let MkIORes (Left acc') w' = toPrim (step acc) w
+            | MkIORes (Right res) w' => MkIORes res w'
+      in go acc' w'
+
+partial
+fillRAM : el -> Array el -> IO ()
+fillRAM v arr = do
+  n <- sizeIO arr
+  untilIO n $ \i => case i of
+    0 => pure $ Right ()
+    i => do
+      let i' = i - 1
+      writeIO arr i' v
+      pure $ Left i'
+
 public export
 covering
 %export "javascript:startUI"
@@ -59,8 +80,10 @@ startUI : ArrayBuffer -> ArrayBuffer -> IO ()
 startUI mainBuf charBuf = do
   mainROM <- arrayDataFrom $ the UInt8Array (cast mainBuf)
   charROM <- arrayDataFrom $ the UInt8Array (cast charBuf)
-  mainRAM <- newArrayIO 0
-  videoRAM <- newArrayIO 0
+  mainRAM <- newArrayIO 0x4000
+  fillRAM 0x00 mainRAM
+  videoRAM <- newArrayIO 0x400
+  fillRAM 0x00 videoRAM
   let machine = MkMachine
         { mainROM = mainROM
         , mainRAM = mainRAM

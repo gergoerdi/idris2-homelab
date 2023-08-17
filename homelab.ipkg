@@ -2,8 +2,8 @@ package homelab
 version    = 0.0.1
 depends    = dom-mvc
            , contrib
-           , finite
            , bytestring
+           , tailrec
 
 sourcedir  = "src"
 opts       = "--codegen javascript"
