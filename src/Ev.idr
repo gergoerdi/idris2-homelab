@@ -10,5 +10,6 @@ public export
 data Ev : Type where
   Init : Ev
   GotCPU : CPU -> Ev
-  Tick : (Time -> Time) -> Ev
+  Tick : Nat -> Ev
+  NewFrame : Ev
   Step : Ev

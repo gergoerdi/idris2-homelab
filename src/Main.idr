@@ -18,11 +18,12 @@ record St where
   constructor MkSt
   cpu : Maybe CPU
   clock : Time
+  frameDone : Bool
 
 content : St -> Node Ev
 content s =
   div []
-    [ button [onClick Step] [Text "Turn the CPU crank"]
+    [ button [onClick Step] [Text "Run for one frame"]
     , p [] [Text $ show s.clock]
     ]
 
@@ -31,7 +32,9 @@ update : Ev -> St -> St
 update Init = id
 update Step = id
 update (GotCPU cpu) = { cpu := Just cpu }
-update (Tick f) = { clock $= f }
+update (Tick n) = \s => let (frameDone, clock') = tick n s.clock in
+  { clock := clock', frameDone $= (|| frameDone) } s
+update NewFrame = { frameDone := False }
 
 dataFile : String -> String
 dataFile s = "../data/hl2/" <+> s
@@ -44,12 +47,11 @@ view machine Init s = C $ \queueEvent => do
   let core = memoryMappedOnly $ HL2.MemoryMap.memoryMap {machine = machine} (runJS . queueEvent)
   cpu <- liftIO $ initCPU core
   queueEvent $ GotCPU cpu
-view machine Step s = C $ \queueEvent => do
+view machine Step s = if s.frameDone then (child Body $ content s) <+> pure NewFrame else C $ \queueEvent => do
   let cpu = fromMaybe (assert_total $ idris_crash "cpu") s.cpu
   cnt <- liftIO $ runInstruction cpu
-  queueEvent $ Tick $ snd . tick (cast cnt)
-  ($ queueEvent) . run $
-    child Body $ content s
+  queueEvent $ Tick (cast cnt)
+  queueEvent Step
 view machine _ s = child Body $ content s
 
 -- view LoadMainROM s = request GET [] (dataFile "rom.bin") Empty ?e1 Nothing
@@ -93,8 +95,11 @@ startUI mainBuf charBuf = do
         , videoRAM = videoRAM
         , keyState = the (IO KeyState) $ pure $ \code => False
         }
-  runMVC update (view machine) (putStrLn . dispErr) Init $
-    MkSt{ cpu = Nothing, clock = startTime }
+  runMVC update (view machine) (putStrLn . dispErr) Init $ MkSt
+    { cpu = Nothing
+    , clock = startTime
+    , frameDone = False
+    }
 
 covering
 main : IO ()
