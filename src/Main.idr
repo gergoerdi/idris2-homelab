@@ -16,32 +16,24 @@ import HL2.MemoryMap
 
 record St where
   constructor MkSt
-  cpu : Maybe CPU
   clock : Time
   frameDone : Bool
-  cycleCnt : Bits32
 
-content : St -> Node Ev
-content s =
+content : CPU -> St -> Node Ev
+content cpu s =
   div []
-    [ button [onClick Step] [Text "Run for one frame"]
+    [ button [onClick $ Step cpu] [Text "Run for one frame"]
     , p [] [Text $ show s.clock]
     ]
 
 export
 update : Ev -> St -> St
 update Init = id
-update Step = id
-update (GotCPU cpu) = { cpu := Just cpu }
-update (Tick n) = \s =>
-  -- let cycleCnt' = s.cycleCnt + n
-  --     frameDone = cycleCnt' > 80_000
-  --     cycleCnt'' : Bits32
-  --     cycleCnt'' = if frameDone then cycleCnt' - 80000 else cycleCnt'
-  -- in { cycleCnt := cycleCnt'', frameDone $= (|| frameDone) } s
+update (Step cpu) = id
+update (Tick cpu n) = \s =>
   let (frameDone, clock') = tick (cast n) s.clock
   in { clock := clock', frameDone $= (|| frameDone) } s
-update NewFrame = { frameDone := False }
+update (NewFrame cpu) = { frameDone := False }
 
 dataFile : String -> String
 dataFile s = "../data/hl2/" <+> s
@@ -53,14 +45,13 @@ view : Machine IO -> Ev -> St -> Cmd Ev
 view machine Init s = C $ \queueEvent => do
   let core = memoryMappedOnly $ HL2.MemoryMap.memoryMap {machine = machine} (runJS . queueEvent)
   cpu <- liftIO $ initCPU core
-  queueEvent $ GotCPU cpu
-view machine Step s = if s.frameDone then (child Body $ content s) <+> pure NewFrame else C $ \queueEvent => do
-  let cpu = fromMaybe (assert_total $ idris_crash "cpu") s.cpu
+  queueEvent $ NewFrame cpu
+view machine (NewFrame cpu) s = child Body $ content cpu s
+view machine (Step cpu) s = if s.frameDone then (child Body $ content cpu s) <+> pure (NewFrame cpu) else C $ \queueEvent => do
   cnt <- liftIO $ runInstruction cpu
-  queueEvent $ Tick (cast cnt)
-  queueEvent Step
-view machine (Tick _) s = neutral
-view machine _ s = child Body $ content s
+  queueEvent $ Tick cpu (cast cnt)
+  queueEvent $ Step cpu
+view machine (Tick _ _) s = neutral
 
 -- view LoadMainROM s = request GET [] (dataFile "rom.bin") Empty ?e1 Nothing
 -- view LoadCharROM s = request GET [] (dataFile "charset.bin") Empty ?e2 Nothing
@@ -104,10 +95,8 @@ startUI mainBuf charBuf = do
         , keyState = the (IO KeyState) $ pure $ \code => False
         }
   runMVC update (view machine) (putStrLn . dispErr) Init $ MkSt
-    { cpu = Nothing
-    , clock = startTime
+    { clock = startTime
     , frameDone = False
-    , cycleCnt = 0
     }
 
 covering

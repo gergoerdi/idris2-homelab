@@ -9,7 +9,6 @@ import Web.MVC
 public export
 data Ev : Type where
   Init : Ev
-  GotCPU : CPU -> Ev
-  Tick : Bits32 -> Ev
-  NewFrame : Ev
-  Step : Ev
+  Tick : CPU -> Bits32 -> Ev
+  NewFrame : CPU -> Ev
+  Step : CPU -> Ev
