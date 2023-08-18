@@ -8,7 +8,11 @@ import Web.MVC
 
 public export
 data Ev : Type where
-  Init : Ev
-  Tick : CPU -> Bits32 -> Ev
-  NewFrame : CPU -> Ev
-  Step : CPU -> Ev
+  Tick : Bits32 -> Ev
+  NewFrame : Ev
+  Step : Ev
+
+public export
+data CPUEv : Type where
+  Init : CPUEv
+  Run : CPU -> Ev -> CPUEv

@@ -5,6 +5,7 @@ import Ev
 import MemoryMap
 import Data.ByteVect
 
+import CPU
 import Keyboard
 import HL2.Keyboard
 import HL2.Machine

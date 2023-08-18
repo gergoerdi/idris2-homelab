@@ -3,6 +3,7 @@ module Main
 import Web.MVC
 import Web.MVC.Http
 import JS.Array
+import Data.IORef
 
 import HL2.Clock
 import Ev
@@ -19,21 +20,25 @@ record St where
   clock : Time
   frameDone : Bool
 
-content : CPU -> St -> Node Ev
-content cpu s =
+withCPU : CPU -> Cmd Ev -> Cmd CPUEv
+withCPU cpu cmd = C $ \handler => run cmd (handler . Run cpu)
+
+content : St -> Node Ev
+content s =
   div []
-    [ button [onClick $ Step cpu] [Text "Run for one frame"]
+    [ button [onClick Step] [Text "Run for one frame"]
     , p [] [Text $ show s.clock]
     ]
 
 export
-update : Ev -> St -> St
+update : CPUEv -> St -> St
 update Init = id
-update (Step cpu) = id
-update (Tick cpu n) = \s =>
-  let (frameDone, clock') = tick (cast n) s.clock
-  in { clock := clock', frameDone $= (|| frameDone) } s
-update (NewFrame cpu) = { frameDone := False }
+update (Run cpu ev) = case ev of
+  Step => id
+  Tick n => \s =>
+    let (frameDone, clock') = tick (cast n) s.clock
+    in { clock := clock', frameDone $= (|| frameDone) } s
+  NewFrame => { frameDone := False }
 
 dataFile : String -> String
 dataFile s = "../data/hl2/" <+> s
@@ -41,17 +46,25 @@ dataFile s = "../data/hl2/" <+> s
 tapeFile : String -> String
 tapeFile s = "../image/hl2/" <+> s
 
-view : Machine IO -> Ev -> St -> Cmd Ev
+view : Machine IO -> CPUEv -> St -> Cmd CPUEv
 view machine Init s = C $ \queueEvent => do
-  let core = memoryMappedOnly $ HL2.MemoryMap.memoryMap {machine = machine} (runJS . queueEvent)
-  cpu <- liftIO $ initCPU core
-  queueEvent $ NewFrame cpu
-view machine (NewFrame cpu) s = child Body $ content cpu s
-view machine (Step cpu) s = if s.frameDone then (child Body $ content cpu s) <+> pure (NewFrame cpu) else C $ \queueEvent => do
-  cnt <- liftIO $ runInstruction cpu
-  queueEvent $ Tick cpu (cast cnt)
-  queueEvent $ Step cpu
-view machine (Tick _ _) s = neutral
+  cpu <- liftIO $ do
+    cell <- newIORef Nothing
+    let core = memoryMappedOnly $ HL2.MemoryMap.memoryMap {machine = machine} $ \ev => do
+      Just cpu <- readIORef cell
+        | Nothing => pure ()
+      runJS $ queueEvent (Run cpu ev)
+    cpu <- liftIO $ initCPU core
+    writeIORef cell $ Just cpu
+    pure cpu
+  queueEvent $ Run cpu NewFrame
+view machine (Run cpu ev) s = case ev of
+  NewFrame => withCPU cpu $ child Body $ content s
+  Step => if s.frameDone then (withCPU cpu $ child Body $ content s) <+> pure (Run cpu NewFrame) else C $ \queueEvent => do
+    cnt <- liftIO $ runInstruction cpu
+    queueEvent $ Run cpu $ Tick (cast cnt)
+    queueEvent $ Run cpu Step
+  Tick _ => neutral
 
 -- view LoadMainROM s = request GET [] (dataFile "rom.bin") Empty ?e1 Nothing
 -- view LoadCharROM s = request GET [] (dataFile "charset.bin") Empty ?e2 Nothing
