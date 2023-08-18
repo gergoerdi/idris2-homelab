@@ -10,6 +10,6 @@ public export
 data Ev : Type where
   Init : Ev
   GotCPU : CPU -> Ev
-  Tick : Nat -> Ev
+  Tick : Bits32 -> Ev
   NewFrame : Ev
   Step : Ev

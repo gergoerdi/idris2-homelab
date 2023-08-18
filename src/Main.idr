@@ -19,6 +19,7 @@ record St where
   cpu : Maybe CPU
   clock : Time
   frameDone : Bool
+  cycleCnt : Bits32
 
 content : St -> Node Ev
 content s =
@@ -32,8 +33,14 @@ update : Ev -> St -> St
 update Init = id
 update Step = id
 update (GotCPU cpu) = { cpu := Just cpu }
-update (Tick n) = \s => let (frameDone, clock') = tick n s.clock in
-  { clock := clock', frameDone $= (|| frameDone) } s
+update (Tick n) = \s =>
+  let cycleCnt' = s.cycleCnt + n
+      frameDone = cycleCnt' > 80_000
+      cycleCnt'' : Bits32
+      cycleCnt'' = if frameDone then cycleCnt' - 80000 else cycleCnt'
+  in { cycleCnt := cycleCnt'', frameDone $= (|| frameDone) } s
+-- let (frameDone, clock') = tick (cast n) s.clock in
+--   { clock := clock', frameDone $= (|| frameDone) } s
 update NewFrame = { frameDone := False }
 
 dataFile : String -> String
@@ -99,6 +106,7 @@ startUI mainBuf charBuf = do
     { cpu = Nothing
     , clock = startTime
     , frameDone = False
+    , cycleCnt = 0
     }
 
 covering
