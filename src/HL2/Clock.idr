@@ -5,10 +5,37 @@ import Data.Nat
 import Control.Monad.Writer
 import Data.IORef
 
+%default total
+
+public export
+0 CPUFreq : Nat
+CPUFreq = 4_000_000
+
+public export
+0 FPS : Nat
+FPS = 50
+
+public export
+0 VisibleCols : Nat
+VisibleCols = 256
+
+public export
+0 VisibleLines : Nat
+VisibleLines = 288
+
+public export
+0 FrameCount : Nat
+-- FrameCount = (CPUFreq `divNatNZ` FPS) % search -- This blows up typechecking time :/
+FrameCount = 80_000
+
+public export
+0 BlankCount : Nat
+BlankCount = FrameCount `minus` (VisibleCols * VisibleLines)
+
 public export
 data Time : Type where
-  Visible : Index 288 -> Index 256 -> Time
-  Blank   : Index 6272             -> Time
+  Visible : Index VisibleLines -> Index VisibleCols -> Time
+  Blank   : Index BlankCount                        -> Time
 
 public export
 Show Time where
