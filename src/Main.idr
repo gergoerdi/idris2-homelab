@@ -34,13 +34,13 @@ update Init = id
 update Step = id
 update (GotCPU cpu) = { cpu := Just cpu }
 update (Tick n) = \s =>
-  let cycleCnt' = s.cycleCnt + n
-      frameDone = cycleCnt' > 80_000
-      cycleCnt'' : Bits32
-      cycleCnt'' = if frameDone then cycleCnt' - 80000 else cycleCnt'
-  in { cycleCnt := cycleCnt'', frameDone $= (|| frameDone) } s
--- let (frameDone, clock') = tick (cast n) s.clock in
---   { clock := clock', frameDone $= (|| frameDone) } s
+  -- let cycleCnt' = s.cycleCnt + n
+  --     frameDone = cycleCnt' > 80_000
+  --     cycleCnt'' : Bits32
+  --     cycleCnt'' = if frameDone then cycleCnt' - 80000 else cycleCnt'
+  -- in { cycleCnt := cycleCnt'', frameDone $= (|| frameDone) } s
+  let (frameDone, clock') = tick (cast n) s.clock
+  in { clock := clock', frameDone $= (|| frameDone) } s
 update NewFrame = { frameDone := False }
 
 dataFile : String -> String
