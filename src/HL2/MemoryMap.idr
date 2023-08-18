@@ -3,7 +3,6 @@ module HL2.MemoryMap
 import Data.So
 import Ev
 import MemoryMap
-import Data.Buffer.Index
 import Data.ByteVect
 
 import Keyboard
@@ -12,7 +11,7 @@ import HL2.Machine
 
 import JS.Array
 
-addressByte : Index 256 -> Bits8
+addressByte : Addr 256 -> Bits8
 addressByte (Element addr _) = cast addr
 
 -- interface Monad m => HasMemory m where
@@ -48,18 +47,3 @@ memoryMap queueEvent = contramap cast $ memoryMap
   -- , MkMapEntry{ from = 0xe000, to = 0xffff, unit = readOnly video_scan }
   ]
   (unconnected 0xff)
-  where
-    theROM : MemoryUnit m (Addr 0x0000 0x1fff) Bits8
-    theROM = MkMemoryUnit
-      { read = \addr@(Element i _) => do
-             -- queueEvent Inside
-             queueEvent $ Tick 1
-             read (rom machine.mainROM) addr
-      , write = write (rom machine.mainROM)
-      }
-
-  -- where
-  --   video_scan : Addr 0xe000 0xffff -> m Bits8
-  --   video_scan addr = do
-  --     tape_signal <- tapeIn
-  --     pure $ if tape_signal then 0xff else 0x00

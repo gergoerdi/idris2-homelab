@@ -2,24 +2,38 @@ module MemoryMap
 
 import Data.So
 import Data.Fin
-import Data.Buffer.Index
+import public Data.DPair
 import Data.ByteVect
 import JS.Array
 
 %default total
 
 public export
-0 Addr : Nat -> Nat -> Type
-Addr from to = Index (S (to `minus` from))
+0 RawAddr : Type
+RawAddr = Bits16
+
+public export
+0 Addr : Nat -> Type
+Addr n = Subset RawAddr (\i => cast i `LT` n)
+
+public export
+0 AddrFromTo : Nat -> Nat -> Type
+AddrFromTo from to = Addr (S (to `minus` from))
+
+0 minusRaw :
+     (x : RawAddr)
+  -> (y : RawAddr)
+  -> (prf : cast x `LTE` cast y)
+  -> cast (y - x) = cast y `minus` cast x
 
 inRange :
-     (from : Nat)
-  -> (to : Nat)
-  -> (addr : Nat)
-  -> (0 lower : from `LTE` addr)
-  -> (0 upper : addr `LTE` to)
-  -> Addr from to
-inRange from to addr lower upper = Element (addr `minus` from) $ LTESucc $ minusLteMonotone upper
+     (from : RawAddr)
+  -> (to : RawAddr)
+  -> (addr : RawAddr)
+  -> (0 lower : cast from `LTE` cast addr)
+  -> (0 upper : cast addr `LTE` cast to)
+  -> AddrFromTo (cast from) (cast to)
+inRange from to addr lower upper = Element (addr - from) $ LTESucc $ rewrite (minusRaw from addr lower) in minusLteMonotone upper
 
 public export
 record MemoryUnit (m : Type -> Type) (addr : Type) (a : Type) where
@@ -34,22 +48,22 @@ contramap f = { read $= (. f), write $= (. f) }
 public export
 record MapEntry (m : Type -> Type) (a : Type) where
   constructor MkMapEntry
-  from, to : Nat
+  from, to : RawAddr
   {auto 0 prf : So (to >= from)}
-  unit : MemoryUnit m (Addr from to) a
+  unit : MemoryUnit m (AddrFromTo (cast from) (cast to)) a
 
 export
-memoryMap : List (MapEntry m a) -> MemoryUnit m () a -> MemoryUnit m Nat a
+memoryMap : List (MapEntry m a) -> MemoryUnit m () a -> MemoryUnit m RawAddr a
 memoryMap units unit0 = MkMemoryUnit (\addr => read (find addr) ()) (\addr => write (find addr) ())
   where
-    find : (addr : Nat) -> MemoryUnit m () a
+    find : (addr : RawAddr) -> MemoryUnit m () a
     find addr = go units
       where
         go : List (MapEntry m a) -> MemoryUnit m () a
         go (MkMapEntry from to unit :: units) = case (from <= addr, addr <= to) of
           (True, True) =>
-            let 0 lower = fromMaybe (assert_total $ idris_crash "p") $ from `maybeLTE` addr
-                0 upper = fromMaybe (assert_total $ idris_crash "q") $ addr `maybeLTE` to
+            let 0 lower = fromMaybe (assert_total $ idris_crash "p") $ cast from `maybeLTE` cast addr
+                0 upper = fromMaybe (assert_total $ idris_crash "q") $ cast addr `maybeLTE` cast to
             in contramap (\() => inRange from to addr lower upper) unit
           _ => go units
         go [] = unit0
@@ -68,11 +82,11 @@ readOnly rd = MkMemoryUnit
 export
 -- rom : Applicative m => ByteVect n -> MemoryUnit m (Index n) Bits8
 -- rom bs = readOnly $ \addr => pure $ index addr bs
-rom : HasIO m => Array a -> MemoryUnit m (Index n) a
+rom : HasIO m => Array a -> MemoryUnit m (Addr n) a
 rom arr = readOnly $ \(Element i _) => fromMaybe (assert_total $ idris_crash ("read " <+> show i)) <$> readIO arr (cast i)
 
 export
-ram : HasIO m => Array a -> MemoryUnit m (Index n) a
+ram : HasIO m => Array a -> MemoryUnit m (Addr n) a
 ram arr = MkMemoryUnit
   { read = \(Element i _) => fromMaybe (assert_total $ idris_crash ("read " <+> show i)) <$> readIO arr (cast i)
   , write = \(Element i _), val => writeIO arr (cast i) val
