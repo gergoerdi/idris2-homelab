@@ -29,9 +29,9 @@ keymap =
 -- --     return val;
 -- -- }
 
--- public export
--- keyboardByte : KeyState -> Bits8 -> Bits8
--- keyboardByte keyState addr = ?kb
+public export
+keyboardByte : KeyState -> Bits8 -> Bits8
+keyboardByte keyState addr = 0xff -- TODO
 
 -- -- function keyboard_byte(keystate, addr) {
 -- --     let val = 0xff;

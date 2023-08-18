@@ -4,9 +4,11 @@ import Web.MVC
 import Web.MVC.Http
 import JS.Array
 
+import HL2.Clock
 import Ev
 import Core
 import CPU
+import Keyboard
 import HL2.Machine
 import HL2.MemoryMap
 
@@ -15,13 +17,13 @@ import HL2.MemoryMap
 record St where
   constructor MkSt
   cpu : Maybe CPU
-  romAddrs : List Bits16
+  clock : Time
 
 content : St -> Node Ev
 content s =
   div []
     [ button [onClick Step] [Text "Turn the CPU crank"]
-    , p [] [Text $ show s.romAddrs]
+    , p [] [Text $ show s.clock]
     ]
 
 export
@@ -29,7 +31,7 @@ update : Ev -> St -> St
 update Init = id
 update Step = id
 update (GotCPU cpu) = { cpu := Just cpu }
-update (RomSpy addr) = { romAddrs $= (addr::) }
+update (Tick f) = { clock $= f }
 
 dataFile : String -> String
 dataFile s = "../data/hl2/" <+> s
@@ -37,15 +39,16 @@ dataFile s = "../data/hl2/" <+> s
 tapeFile : String -> String
 tapeFile s = "../image/hl2/" <+> s
 
-view : Machine -> Ev -> St -> Cmd Ev
-view machine Init s = C $ \h => do
-  let core = memoryMappedOnly $ HL2.MemoryMap.memoryMap {machine = machine} (runJS . h)
+view : Machine IO -> Ev -> St -> Cmd Ev
+view machine Init s = C $ \queueEvent => do
+  let core = memoryMappedOnly $ HL2.MemoryMap.memoryMap {machine = machine} (runJS . queueEvent)
   cpu <- liftIO $ initCPU core
-  h $ GotCPU cpu
-view machine Step s = C $ \h => do
+  queueEvent $ GotCPU cpu
+view machine Step s = C $ \queueEvent => do
   let cpu = fromMaybe (assert_total $ idris_crash "cpu") s.cpu
   cnt <- liftIO $ runInstruction cpu
-  ($ h) . run $
+  queueEvent $ Tick $ snd . tick (cast cnt)
+  ($ queueEvent) . run $
     child Body $ content s
 view machine _ s = child Body $ content s
 
@@ -88,9 +91,10 @@ startUI mainBuf charBuf = do
         { mainROM = mainROM
         , mainRAM = mainRAM
         , videoRAM = videoRAM
+        , keyState = the (IO KeyState) $ pure $ \code => False
         }
   runMVC update (view machine) (putStrLn . dispErr) Init $
-    MkSt{ cpu = Nothing, romAddrs = [] }
+    MkSt{ cpu = Nothing, clock = startTime }
 
 covering
 main : IO ()

@@ -35,7 +35,7 @@ public export
 record MapEntry (m : Type -> Type) (a : Type) where
   constructor MkMapEntry
   from, to : Nat
-  {auto prf : So (to >= from)}
+  {auto 0 prf : So (to >= from)}
   unit : MemoryUnit m (Addr from to) a
 
 export

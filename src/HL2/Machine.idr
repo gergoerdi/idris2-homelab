@@ -16,29 +16,29 @@ public export
 RAM size = Array Bits8
 
 public export
-record Machine where
+record Machine m where
   constructor MkMachine
 
   mainROM : ROM 0x2000
   mainRAM : RAM 0x4000
   videoRAM : RAM 0x400
 
-  -- keyState_ : KeyState
+  keyState : m KeyState
   -- videoOn_ : m ()
   -- videoOff_ : m ()
 
 public export
-mainROM : Machine => ROM 0x2000
-mainROM = mainROM %search
+mainROM : (machine: Machine m) => ROM 0x2000
+mainROM = machine.mainROM
 
 public export
-mainRAM : Machine => RAM 0x4000
-mainRAM = mainRAM %search
+mainRAM : (machine: Machine m) => RAM 0x4000
+mainRAM = machine.mainRAM
 
 public export
-videoRAM : Machine => RAM 0x400
-videoRAM = videoRAM %search
+videoRAM : (machine: Machine m) => RAM 0x400
+videoRAM = machine.videoRAM
 
--- public export
--- keyState : Machine => KeyState
--- keyState = keyState_ %search
+public export
+keyState : (machine: Machine m) => m KeyState
+keyState = machine.keyState
