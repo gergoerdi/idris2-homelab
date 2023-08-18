@@ -59,6 +59,7 @@ view machine Step s = if s.frameDone then (child Body $ content s) <+> pure NewF
   cnt <- liftIO $ runInstruction cpu
   queueEvent $ Tick (cast cnt)
   queueEvent Step
+view machine (Tick _) s = neutral
 view machine _ s = child Body $ content s
 
 -- view LoadMainROM s = request GET [] (dataFile "rom.bin") Empty ?e1 Nothing
