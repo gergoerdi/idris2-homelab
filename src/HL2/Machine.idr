@@ -5,11 +5,12 @@ import Data.ByteVect
 import Keyboard
 
 import JS.Array
+import JS.Buffer
 
 public export
 0 ROM : Nat -> Type
 -- ROM size = ByteVect size
-ROM size = Array Bits8
+ROM size = UInt8Array
 
 public export
 0 RAM : Nat -> Type

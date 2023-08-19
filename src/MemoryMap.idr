@@ -82,7 +82,7 @@ readOnly rd = MkMemoryUnit
 export
 -- rom : Applicative m => ByteVect n -> MemoryUnit m (Index n) Bits8
 -- rom bs = readOnly $ \addr => pure $ index addr bs
-rom : HasIO m => Array a -> MemoryUnit m (Addr n) a
+rom : HasIO m => ArrayLike arr a => arr -> MemoryUnit m (Addr n) a
 rom arr = readOnly $ \(Element i _) => fromMaybe (assert_total $ idris_crash ("read " <+> show i)) <$> readIO arr (cast i)
 
 export

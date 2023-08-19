@@ -11,6 +11,7 @@ import HL2.Keyboard
 import HL2.Machine
 
 import JS.Array
+import JS.Buffer
 
 addressByte : Addr 256 -> Bits8
 addressByte (Element addr _) = cast addr

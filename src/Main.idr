@@ -96,9 +96,9 @@ fillRAM v arr = do
 public export
 covering
 %export "javascript:startUI"
-startUI : ArrayBuffer -> (Array Bits8 -> PrimIO ()) -> IO ()
-startUI mainBuf render = do
-  mainROM <- arrayDataFrom $ the UInt8Array (cast mainBuf)
+startUI : ArrayBuffer -> (Array Bits8 -> PrimIO ()) -> PrimIO ()
+startUI mainBuf render = toPrim $ do
+  mainROM <- pure $ the UInt8Array (cast mainBuf)
   mainRAM <- newArrayIO 0x4000
   fillRAM 0x00 mainRAM
   videoRAM <- newArrayIO 0x400
