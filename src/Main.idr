@@ -20,6 +20,7 @@ record St where
   clock : Time
   frameDone : Bool
   videoRunning : Bool
+  videoRunningCell : IORef Bool
 
 withCPU : CPU -> Cmd Ev -> Cmd CPUEv
 withCPU cpu cmd = C $ \handler => run cmd (handler . Run cpu)
@@ -58,7 +59,7 @@ view : Machine IO -> CPUEv -> St -> Cmd CPUEv
 view machine Init s = C $ \queueEvent => do
   cpu <- liftIO $ do
     cell <- newIORef Nothing
-    let core = memoryMappedOnly $ HL2.MemoryMap.memoryMap {machine = machine} s.videoRunning $ \ev => do
+    let core = memoryMappedOnly $ HL2.MemoryMap.memoryMap {machine = machine} $ \ev => do
       Just cpu <- readIORef cell
         | Nothing => pure ()
       runJS $ queueEvent (Run cpu ev)
@@ -73,8 +74,8 @@ view machine (Run cpu ev) s = withCPU cpu $ case ev of
     queueEvent $ Tick (cast cnt)
     queueEvent $ Step
   Tick _ => neutral
-  VideoOff => neutral
-  VideoOn => neutral
+  VideoOff => liftIO_ $ writeIORef s.videoRunningCell False
+  VideoOn => liftIO_ $ writeIORef s.videoRunningCell True
 
 partial
 untilIO : acc -> (acc -> IO (Either acc r)) -> IO r
@@ -113,17 +114,21 @@ startUI mainBuf = toPrim $ do
   fillRAM 0x00 mainRAM
   videoRAM <- newArrayIO 0x400
   fillRAM 0x00 videoRAM
+
+  videoRunningCell <- newIORef False
   let machine = MkMachine
         { mainROM = mainROM
         , mainRAM = mainRAM
         , videoRAM = videoRAM
         , keyState = the (IO KeyState) $ pure $ \code => False
+        , videoRunning = readIORef videoRunningCell
         }
   startVideo videoRAM
   runMVC update (view machine) (putStrLn . dispErr) Init $ MkSt
     { clock = startTime
     , frameDone = False
     , videoRunning = False
+    , videoRunningCell = videoRunningCell
     }
 
 covering

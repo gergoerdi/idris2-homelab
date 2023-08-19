@@ -17,8 +17,8 @@ addressByte : Addr 256 -> Bits8
 addressByte (Element addr _) = cast addr
 
 public export
-memoryMap : HasIO m => (machine: Machine m) => Bool -> (queueEvent : Ev -> m ()) -> MemoryUnit m Bits16 Bits8
-memoryMap videoRunning queueEvent = contramap cast $ memoryMap
+memoryMap : HasIO m => (machine: Machine m) => (queueEvent : Ev -> m ()) -> MemoryUnit m Bits16 Bits8
+memoryMap queueEvent = contramap cast $ memoryMap
   [ MkMapEntry{ from = 0x0000, to = 0x1fff, unit = rom machine.mainROM }
   , MkMapEntry{ from = 0x3800, to = 0x39ff, unit = unconnected 0x00 } -- TODO: reset button
   , MkMapEntry{ from = 0x3a00, to = 0x3aff, unit = readOnly $ \addr => do
@@ -45,6 +45,6 @@ memoryMap videoRunning queueEvent = contramap cast $ memoryMap
 
     videoScan : AddrFromTo 0xe000 0xffff -> m Bits8
     videoScan (Element i _) = pure $
-        if not videoRunning then tapeIn else
-        if i `mod` 40 == 0 then 0xff else
-        0x3f
+      if not !machine.videoRunning then tapeIn else
+      if i `mod` 40 == 0 then 0xff else
+      0x3f
