@@ -62,15 +62,12 @@ view machine Init s = C $ \queueEvent => do
     pure cpu
   queueEvent $ Run cpu NewFrame
 view machine (Run cpu ev) s = withCPU cpu $ case ev of
-  NewFrame => display s <+> (C $ \queueEvent => liftIO $ render machine)
+  NewFrame => display s
   Step => if s.frameDone then display s <+> pure NewFrame else C $ \queueEvent => do
     cnt <- liftIO $ runInstruction cpu
     queueEvent $ Tick (cast cnt)
     queueEvent $ Step
   Tick _ => neutral
-
--- view LoadMainROM s = request GET [] (dataFile "rom.bin") Empty ?e1 Nothing
--- view LoadCharROM s = request GET [] (dataFile "charset.bin") Empty ?e2 Nothing
 
 partial
 untilIO : acc -> (acc -> IO (Either acc r)) -> IO r
@@ -93,11 +90,17 @@ fillRAM v arr = do
       writeIO arr i' v
       pure $ Left i'
 
+%foreign "javascript:lambda: vram => startVideo(vram)"
+prim__startVideo : Array Bits8 -> PrimIO ()
+
+startVideo : Array Bits8 -> IO ()
+startVideo vram = primIO $ prim__startVideo vram
+
 public export
 covering
 %export "javascript:startUI"
-startUI : ArrayBuffer -> (Array Bits8 -> PrimIO ()) -> PrimIO ()
-startUI mainBuf render = toPrim $ do
+startUI : ArrayBuffer -> PrimIO ()
+startUI mainBuf = toPrim $ do
   mainROM <- pure $ the UInt8Array (cast mainBuf)
   mainRAM <- newArrayIO 0x4000
   fillRAM 0x00 mainRAM
@@ -108,8 +111,8 @@ startUI mainBuf render = toPrim $ do
         , mainRAM = mainRAM
         , videoRAM = videoRAM
         , keyState = the (IO KeyState) $ pure $ \code => False
-        , render = primIO $ render videoRAM
         }
+  startVideo videoRAM
   runMVC update (view machine) (putStrLn . dispErr) Init $ MkSt
     { clock = startTime
     , frameDone = False
