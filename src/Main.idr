@@ -40,7 +40,6 @@ export
 update : CPUEv -> St -> St
 update Init = id
 update (Run cpu ev) = case ev of
-  Step => id
   Tick n => \s =>
     let (frameDone, clock') = tick (cast n) s.clock
     in { clock := clock', frameDone $= (|| frameDone) } s
@@ -69,12 +68,10 @@ view machine Init s = C $ \queueEvent => do
     pure cpu
   run (withCPU cpu $ NewFrame `every` 20) queueEvent
 view machine (Run cpu ev) s = withCPU cpu $ case ev of
-  NewFrame => liftIO_ (when s.videoRunning $ triggerNMI cpu) <+> pure Step
-  Step => C $ \queueEvent => when (not s.frameDone) $ do
+  NewFrame => liftIO_ (when s.videoRunning $ triggerNMI cpu) <+> pure (Tick 0)
+  Tick _ => C $ \queueEvent => when (not s.frameDone) $ do
     cnt <- liftIO $ runInstruction cpu
     queueEvent $ Tick (cast cnt)
-    queueEvent $ Step
-  Tick _ => neutral
   VideoOff => liftIO_ $ writeIORef s.videoRunningCell False
   VideoOn => liftIO_ $ writeIORef s.videoRunningCell True
 
