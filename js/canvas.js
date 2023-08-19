@@ -1,4 +1,4 @@
-const render_textbuf = canvas => {
+const render_textbuf = (canvas, charset) => {
     const ctx = canvas.getContext("2d");
     const buf = ctx.createImageData(canvas.width, canvas.height);
     
@@ -11,7 +11,7 @@ const render_textbuf = canvas => {
             return ptr;
     };
 
-    return (charset, vram) => {
+    return (vram) => {
         let ptr = 0;
 
         for (let row = 0; row < 25; ++row) {
@@ -28,5 +28,7 @@ const render_textbuf = canvas => {
                 }
             }
         }
+
+        ctx.putImageData(buf, 0, 0);
     }
 }

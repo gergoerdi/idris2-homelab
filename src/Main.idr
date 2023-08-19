@@ -30,6 +30,9 @@ content s =
     , p [] [Text $ show s.clock]
     ]
 
+display : St -> Cmd Ev
+display s = child (the (Ref HTML.Tag.Div) $ Id "idris") $ content s
+
 export
 update : CPUEv -> St -> St
 update Init = id
@@ -58,12 +61,12 @@ view machine Init s = C $ \queueEvent => do
     writeIORef cell $ Just cpu
     pure cpu
   queueEvent $ Run cpu NewFrame
-view machine (Run cpu ev) s = case ev of
-  NewFrame => withCPU cpu $ child Body $ content s
-  Step => if s.frameDone then (withCPU cpu $ child Body $ content s) <+> pure (Run cpu NewFrame) else C $ \queueEvent => do
+view machine (Run cpu ev) s = withCPU cpu $ case ev of
+  NewFrame => display s <+> (C $ \queueEvent => liftIO $ render machine)
+  Step => if s.frameDone then display s <+> pure NewFrame else C $ \queueEvent => do
     cnt <- liftIO $ runInstruction cpu
-    queueEvent $ Run cpu $ Tick (cast cnt)
-    queueEvent $ Run cpu Step
+    queueEvent $ Tick (cast cnt)
+    queueEvent $ Step
   Tick _ => neutral
 
 -- view LoadMainROM s = request GET [] (dataFile "rom.bin") Empty ?e1 Nothing
@@ -93,10 +96,9 @@ fillRAM v arr = do
 public export
 covering
 %export "javascript:startUI"
-startUI : ArrayBuffer -> ArrayBuffer -> IO ()
-startUI mainBuf charBuf = do
+startUI : ArrayBuffer -> (Array Bits8 -> PrimIO ()) -> IO ()
+startUI mainBuf render = do
   mainROM <- arrayDataFrom $ the UInt8Array (cast mainBuf)
-  charROM <- arrayDataFrom $ the UInt8Array (cast charBuf)
   mainRAM <- newArrayIO 0x4000
   fillRAM 0x00 mainRAM
   videoRAM <- newArrayIO 0x400
@@ -106,6 +108,7 @@ startUI mainBuf charBuf = do
         , mainRAM = mainRAM
         , videoRAM = videoRAM
         , keyState = the (IO KeyState) $ pure $ \code => False
+        , render = primIO $ render videoRAM
         }
   runMVC update (view machine) (putStrLn . dispErr) Init $ MkSt
     { clock = startTime

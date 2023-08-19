@@ -3,37 +3,40 @@
  <head>
   <title>HomeLab-2</title>
   <meta charset="utf-8">
-  <!-- <link rel="stylesheet" href="../js/import/bootstrap5/bootstrap-icons.css"> -->
-  <!-- <link href="../js/import/bootstrap5/bootstrap.min.css.gz" rel="stylesheet"> -->
+  <link rel="stylesheet" href="../js/import/bootstrap5/bootstrap-icons.css">
+  <link href="../js/import/bootstrap5/bootstrap.min.css.gz" rel="stylesheet">
   <link rel="stylesheet" type="text/css" href="index.css">
  </head>
  <body>
-   <!-- <div class="fullscreen flexcol"> -->
-   <!--   <h1 class="centered">HonLab</h1> -->
-   <!--   <div id="canvas-container"> -->
-   <!--     <canvas id="crt" width="320" height="200"></canvas> -->
-   <!--   </div> -->
-   <!--   <div class="flexrow">   -->
-   <!--     <div class="btn-group" role="group"> -->
-   <!--       <button id="tape-btn-rewind" class="btn btn-outline-dark" type="button"> -->
-   <!--         <i class="bi bi-skip-backward-fill"></i> -->
-   <!--       </button> -->
-   <!--       <button id="tape-btn-play" class="btn btn-outline-dark" type="button"> -->
-   <!--         <i class="bi bi-play-fill"></i> -->
-   <!--       </button> -->
-   <!--       <input type="checkbox" class="btn-check" id="tape-btn-record" autocomplete="off"></input> -->
-   <!--       <label class="btn btn-outline-dark" for="tape-btn-record"> -->
-   <!--         <i class="bi bi-record-fill"></i> -->
-   <!--       </label> -->
+   <div class="fullscreen flexcol">
+     <h1 class="centered">HonLab</h1>
+     <div id="canvas-container">
+       <canvas id="crt" width="320" height="200"></canvas>
+     </div>
+
+     <div id="idris"></div>
+     
+     <!-- <div class="flexrow"> -->
+     <!--   <div class="btn-group" role="group"> -->
+     <!--     <button id="tape-btn-rewind" class="btn btn-outline-dark" type="button"> -->
+     <!--       <i class="bi bi-skip-backward-fill"></i> -->
+     <!--     </button> -->
+     <!--     <button id="tape-btn-play" class="btn btn-outline-dark" type="button"> -->
+     <!--       <i class="bi bi-play-fill"></i> -->
+     <!--     </button> -->
+     <!--     <input type="checkbox" class="btn-check" id="tape-btn-record" autocomplete="off"></input> -->
+     <!--     <label class="btn btn-outline-dark" for="tape-btn-record"> -->
+     <!--       <i class="bi bi-record-fill"></i> -->
+     <!--     </label> -->
          
-   <!--       <button id="tape-btn-eject" class="btn btn-outline-dark" type="button"> -->
-   <!--         <i class="bi bi-eject-fill"></i> -->
-   <!--       </button> -->
-   <!--     </div> -->
-   <!--     <input id="tape-range" type="range" disabled min="0" max="10000"></input> -->
-   <!--     <div id="tape-monitor" class="border border-dark border-1 rounded"></div> -->
-   <!--   </div> -->
-   <!-- </div> -->
+     <!--     <button id="tape-btn-eject" class="btn btn-outline-dark" type="button"> -->
+     <!--       <i class="bi bi-eject-fill"></i> -->
+     <!--     </button> -->
+     <!--   </div> -->
+     <!--   <input id="tape-range" type="range" disabled min="0" max="10000"></input> -->
+     <!--   <div id="tape-monitor" class="border border-dark border-1 rounded"></div> -->
+     <!-- </div> -->
+   </div>
    
    <!-- <dialog id="tape-filesel"> -->
    <!--   <form method="dialog" class="modal-content"> -->
@@ -56,8 +59,11 @@
    <!--   </form> -->
    <!-- </dialog> -->
    
+   <script type="text/javascript" src="../js/ui/canvas.js"></script>
+
    <script type="text/javascript" src="../js/import/Z80.js/Z80.js"></script>
-   <script type="text/javascript" src="../js/index.js"></script>
    <script type="text/javascript" src="../build/exec/main.js"></script>
+   <script type="text/javascript" src="../js/canvas.js"></script>
+   <script type="text/javascript" src="../js/index.js"></script>
  </body>
 </html>

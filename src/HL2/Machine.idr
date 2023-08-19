@@ -27,6 +27,8 @@ record Machine m where
   -- videoOn_ : m ()
   -- videoOff_ : m ()
 
+  render : m ()
+
 public export
 mainROM : (machine: Machine m) => ROM 0x2000
 mainROM = machine.mainROM
