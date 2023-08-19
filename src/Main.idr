@@ -19,6 +19,7 @@ record St where
   constructor MkSt
   clock : Time
   frameDone : Bool
+  videoRunning : Bool
 
 withCPU : CPU -> Cmd Ev -> Cmd CPUEv
 withCPU cpu cmd = C $ \handler => run cmd (handler . Run cpu)
@@ -42,6 +43,10 @@ update (Run cpu ev) = case ev of
     let (frameDone, clock') = tick (cast n) s.clock
     in { clock := clock', frameDone $= (|| frameDone) } s
   NewFrame => { frameDone := False }
+  VideoOff => { videoRunning := False }
+  VideoOn => \s =>
+    let (frameDone, clock') = waitLine s.clock
+    in { videoRunning := True, clock := clock', frameDone $= (|| frameDone) } s
 
 dataFile : String -> String
 dataFile s = "../data/hl2/" <+> s
@@ -53,7 +58,7 @@ view : Machine IO -> CPUEv -> St -> Cmd CPUEv
 view machine Init s = C $ \queueEvent => do
   cpu <- liftIO $ do
     cell <- newIORef Nothing
-    let core = memoryMappedOnly $ HL2.MemoryMap.memoryMap {machine = machine} $ \ev => do
+    let core = memoryMappedOnly $ HL2.MemoryMap.memoryMap {machine = machine} s.videoRunning $ \ev => do
       Just cpu <- readIORef cell
         | Nothing => pure ()
       runJS $ queueEvent (Run cpu ev)
@@ -62,12 +67,14 @@ view machine Init s = C $ \queueEvent => do
     pure cpu
   queueEvent $ Run cpu NewFrame
 view machine (Run cpu ev) s = withCPU cpu $ case ev of
-  NewFrame => display s
+  NewFrame => liftIO_ (when s.videoRunning $ triggerNMI cpu) <+> display s
   Step => if s.frameDone then display s <+> pure NewFrame else C $ \queueEvent => do
     cnt <- liftIO $ runInstruction cpu
     queueEvent $ Tick (cast cnt)
     queueEvent $ Step
   Tick _ => neutral
+  VideoOff => neutral
+  VideoOn => neutral
 
 partial
 untilIO : acc -> (acc -> IO (Either acc r)) -> IO r
@@ -116,6 +123,7 @@ startUI mainBuf = toPrim $ do
   runMVC update (view machine) (putStrLn . dispErr) Init $ MkSt
     { clock = startTime
     , frameDone = False
+    , videoRunning = False
     }
 
 covering

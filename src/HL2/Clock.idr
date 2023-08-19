@@ -16,8 +16,8 @@ public export
 FPS = 50
 
 public export
-0 VisibleCols : Nat
-VisibleCols = 256
+0 HorizCount : Nat
+HorizCount = 256
 
 public export
 0 VisibleLines : Nat
@@ -30,12 +30,12 @@ FrameCount = 80_000
 
 public export
 0 BlankCount : Nat
-BlankCount = FrameCount `minus` (VisibleCols * VisibleLines)
+BlankCount = FrameCount `minus` (HorizCount * VisibleLines)
 
 public export
 data Time : Type where
-  Visible : Index VisibleLines -> Index VisibleCols -> Time
-  Blank   : Index BlankCount                        -> Time
+  Visible : Index VisibleLines -> Index HorizCount -> Time
+  Blank   : Index BlankCount                       -> Time
 
 public export
 Show Time where
@@ -47,22 +47,29 @@ last = Element n reflexive
 
 export
 startTime : Time
-startTime = Blank last
+startTime = Visible last last
 
 prev : {n : Nat} -> Index (S n) -> Maybe (Index (S n))
 prev (Element 0 _) = Nothing
 prev (Element (S n) prf) = Just $ Element n $ lteSuccLeft prf
 
 tick1 : Time -> Maybe Time
-tick1 (Visible y x) = case prev x of
-  Just x' => pure $ Visible y x'
-  Nothing => pure $ Visible !(prev y) last
-tick1 (Blank cnt) = pure $ maybe (Visible last last) Blank $ prev cnt
+tick1 (Blank cnt) = pure $ Blank !(prev cnt)
+tick1 (Visible y x) = pure $ case prev x of
+  Just x' => Visible y x'
+  Nothing => maybe (Blank last) (\y' => Visible y' last) (prev y)
 
-export
+public export
 tick : Nat -> Time -> (Bool, Time)
 tick 0 t = (False, t)
 tick (S n) t =
      case tick1 t of
        Nothing => (True, snd $ tick n startTime)
        Just t' => tick n t'
+
+public export
+waitLine : Time -> (Bool, Time)
+waitLine (Blank cnt) = (True, Visible last last)
+waitLine (Visible y x) = case prev y of
+  Just y' => (False, Visible y' last)
+  Nothing => (False, Blank last)

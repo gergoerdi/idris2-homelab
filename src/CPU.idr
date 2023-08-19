@@ -29,6 +29,16 @@ initCPU core = primIO $ prim__initCPU
   (\port => toPrim $ core.readIO port)
   (\port, val => toPrim $ core.writeIO port val)
 
+%foreign "javascript:lambda: cpu => cpu.run_instruction()"
+prim__runInstruction : CPU -> PrimIO Bits8
+
 public export
-%foreign "javascript:lambda: cpu => () => cpu.run_instruction()"
 runInstruction : CPU -> IO Bits8
+runInstruction cpu = primIO $ prim__runInstruction cpu
+
+%foreign "javascript:lambda: cpu => cpu.interrupt(true)"
+prim__triggerNMI : CPU -> PrimIO ()
+
+public export
+triggerNMI : CPU -> IO ()
+triggerNMI cpu = primIO $ prim__triggerNMI cpu

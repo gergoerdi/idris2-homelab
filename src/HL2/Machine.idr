@@ -25,21 +25,3 @@ record Machine m where
   videoRAM : RAM 0x400
 
   keyState : m KeyState
-  -- videoOn_ : m ()
-  -- videoOff_ : m ()
-
-public export
-mainROM : (machine: Machine m) => ROM 0x2000
-mainROM = machine.mainROM
-
-public export
-mainRAM : (machine: Machine m) => RAM 0x4000
-mainRAM = machine.mainRAM
-
-public export
-videoRAM : (machine: Machine m) => RAM 0x400
-videoRAM = machine.videoRAM
-
-public export
-keyState : (machine: Machine m) => m KeyState
-keyState = machine.keyState

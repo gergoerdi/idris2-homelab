@@ -1,4 +1,3 @@
-let cpu = null;
 
 const startVideo = async vram => {
     const char_buf = await (await fetch("../data/hl2/charset.bin")).arrayBuffer();
