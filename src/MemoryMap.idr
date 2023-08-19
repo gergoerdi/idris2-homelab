@@ -4,7 +4,8 @@ import Data.So
 import Data.Fin
 import public Data.DPair
 import Data.ByteVect
-import JS.Array
+import JS.Buffer
+import Data.Array.Fast
 
 %default total
 
@@ -82,21 +83,14 @@ readOnly rd = MkMemoryUnit
 export
 -- rom : Applicative m => ByteVect n -> MemoryUnit m (Index n) Bits8
 -- rom bs = readOnly $ \addr => pure $ index addr bs
-rom : ArrayLike arr a => HasIO m => arr -> MemoryUnit m (Addr n) a
-rom arr = readOnly $ \(Element i _) => fromMaybe (assert_total $ idris_crash ("read " <+> show i)) <$> readIO arr (cast i)
-
-%foreign "javascript:lambda: (_arr, _a, xs, idx, val) => { xs[idx] = val }"
-prim__writeIO : arr -> Bits32 -> a -> PrimIO ()
-
-public export
-writeIO : ArrayLike arr a => HasIO m => arr -> Bits32 -> a -> m ()
-writeIO arr idx val = primIO $ prim__writeIO arr idx val
+rom : HasIO m => UInt8Array -> MemoryUnit m (Addr n) Bits8
+rom arr = readOnly $ \(Element i _) => readArray arr (cast i)
 
 export
-ram : ArrayLike arr a => HasIO m => arr -> MemoryUnit m (Addr n) a
+ram : HasIO m => UInt8Array -> MemoryUnit m (Addr n) Bits8
 ram arr = MkMemoryUnit
-  { read = \(Element i _) => fromMaybe (assert_total $ idris_crash ("read " <+> show i)) <$> readIO arr (cast i)
-  , write = \(Element i _), val => writeIO arr (cast i) val
+  { read = \(Element i _) => readArray arr (cast i)
+  , write = \(Element i _), val => writeArray arr (cast i) val
   }
 
 export
