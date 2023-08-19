@@ -73,6 +73,9 @@ view machine (Run cpu ev) s = withCPU cpu $ case ev of
   NewFrame => batch
     [ cmdIf s.videoRunning $ liftIO_ $ triggerNMI cpu
     , pure (Tick 0)
+    , liftIO_ $ do
+              keyState <- machine.keyState
+              print $ keyState "KeyP"
     ]
   Tick _ => cmdIf (not s.frameDone) $ liftIO $ do
     Tick . cast <$> runInstruction cpu
@@ -95,6 +98,12 @@ prim__startVideo : UInt8Array -> PrimIO ()
 startVideo : UInt8Array -> IO ()
 startVideo vram = primIO $ prim__startVideo vram
 
+%foreign "javascript:lambda: () => code => (keystate[code] && 1) || 0"
+prim__keyState : PrimIO KeyState
+
+keyState : HasIO io => io KeyState
+keyState = primIO prim__keyState
+
 public export
 covering
 %export "javascript:startUI"
@@ -109,7 +118,7 @@ startUI mainBuf = toPrim $ do
         { mainROM = mainROM
         , mainRAM = mainRAM
         , videoRAM = videoRAM
-        , keyState = the (IO KeyState) $ pure $ \code => False
+        , keyState = keyState
         , videoRunning = readIORef videoRunningCell
         }
 
