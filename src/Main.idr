@@ -1,6 +1,7 @@
 module Main
 
 import Web.MVC
+import Web.MVC.Animate
 import Web.MVC.Http
 import JS.Array
 import Data.IORef
@@ -28,7 +29,7 @@ withCPU cpu cmd = C $ \handler => run cmd (handler . Run cpu)
 content : St -> Node Ev
 content s =
   div []
-    [ button [onClick Step] [Text "Run for one frame"]
+    [ button [onClick NewFrame] [Text "Run for one frame"]
     , p [] [Text $ show s.clock]
     ]
 
@@ -66,10 +67,10 @@ view machine Init s = C $ \queueEvent => do
     cpu <- liftIO $ initCPU core
     writeIORef cell $ Just cpu
     pure cpu
-  queueEvent $ Run cpu NewFrame
+  run (withCPU cpu $ NewFrame `every` 20) queueEvent
 view machine (Run cpu ev) s = withCPU cpu $ case ev of
-  NewFrame => liftIO_ (when s.videoRunning $ triggerNMI cpu) <+> display s
-  Step => if s.frameDone then display s <+> pure NewFrame else C $ \queueEvent => do
+  NewFrame => liftIO_ (when s.videoRunning $ triggerNMI cpu) <+> pure Step
+  Step => C $ \queueEvent => when (not s.frameDone) $ do
     cnt <- liftIO $ runInstruction cpu
     queueEvent $ Tick (cast cnt)
     queueEvent $ Step
