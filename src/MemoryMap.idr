@@ -82,11 +82,18 @@ readOnly rd = MkMemoryUnit
 export
 -- rom : Applicative m => ByteVect n -> MemoryUnit m (Index n) Bits8
 -- rom bs = readOnly $ \addr => pure $ index addr bs
-rom : HasIO m => ArrayLike arr a => arr -> MemoryUnit m (Addr n) a
+rom : ArrayLike arr a => HasIO m => arr -> MemoryUnit m (Addr n) a
 rom arr = readOnly $ \(Element i _) => fromMaybe (assert_total $ idris_crash ("read " <+> show i)) <$> readIO arr (cast i)
 
+%foreign "javascript:lambda: (_arr, _a, xs, idx, val) => { xs[idx] = val }"
+prim__writeIO : arr -> Bits32 -> a -> PrimIO ()
+
+public export
+writeIO : ArrayLike arr a => HasIO m => arr -> Bits32 -> a -> m ()
+writeIO arr idx val = primIO $ prim__writeIO arr idx val
+
 export
-ram : HasIO m => Array a -> MemoryUnit m (Addr n) a
+ram : ArrayLike arr a => HasIO m => arr -> MemoryUnit m (Addr n) a
 ram arr = MkMemoryUnit
   { read = \(Element i _) => fromMaybe (assert_total $ idris_crash ("read " <+> show i)) <$> readIO arr (cast i)
   , write = \(Element i _), val => writeIO arr (cast i) val

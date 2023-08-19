@@ -14,7 +14,14 @@ ROM size = UInt8Array
 
 public export
 0 RAM : Nat -> Type
-RAM size = Array Bits8
+RAM size = UInt8Array
+
+%foreign "javascript:lambda: size => new Uint8Array(size)"
+prim__newUInt8Array : Bits32 -> PrimIO UInt8Array
+
+export
+newRAM : HasIO io => (size : Nat) -> io (RAM size)
+newRAM size = primIO $ prim__newUInt8Array (cast size)
 
 public export
 record Machine m where

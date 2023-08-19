@@ -4,6 +4,7 @@ import Web.MVC
 import Web.MVC.Animate
 import Web.MVC.Http
 import JS.Array
+import JS.Buffer
 import Data.IORef
 
 import HL2.Clock
@@ -11,6 +12,7 @@ import Ev
 import Core
 import CPU
 import Keyboard
+import MemoryMap
 import HL2.Machine
 import HL2.MemoryMap
 
@@ -87,21 +89,10 @@ untilIO acc0 step = fromPrim $ go acc0
             | MkIORes (Right res) w' => MkIORes res w'
       in go acc' w'
 
-partial
-fillRAM : el -> Array el -> IO ()
-fillRAM v arr = do
-  n <- sizeIO arr
-  untilIO n $ \i => case i of
-    0 => pure $ Right ()
-    i => do
-      let i' = i - 1
-      writeIO arr i' v
-      pure $ Left i'
-
 %foreign "javascript:lambda: vram => startVideo(vram)"
-prim__startVideo : Array Bits8 -> PrimIO ()
+prim__startVideo : UInt8Array -> PrimIO ()
 
-startVideo : Array Bits8 -> IO ()
+startVideo : UInt8Array -> IO ()
 startVideo vram = primIO $ prim__startVideo vram
 
 public export
@@ -109,11 +100,9 @@ covering
 %export "javascript:startUI"
 startUI : ArrayBuffer -> PrimIO ()
 startUI mainBuf = toPrim $ do
-  mainROM <- pure $ the UInt8Array (cast mainBuf)
-  mainRAM <- newArrayIO 0x4000
-  fillRAM 0x00 mainRAM
-  videoRAM <- newArrayIO 0x400
-  fillRAM 0x00 videoRAM
+  mainROM <- pure $ cast mainBuf
+  mainRAM <- newRAM 0x4000
+  videoRAM <- newRAM 0x400
 
   videoRunningCell <- newIORef False
   let machine = MkMachine
@@ -123,6 +112,7 @@ startUI mainBuf = toPrim $ do
         , keyState = the (IO KeyState) $ pure $ \code => False
         , videoRunning = readIORef videoRunningCell
         }
+
   startVideo videoRAM
   runMVC update (view machine) (putStrLn . dispErr) Init $ MkSt
     { clock = startTime
