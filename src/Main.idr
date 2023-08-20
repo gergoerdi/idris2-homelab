@@ -18,6 +18,10 @@ import HL2.MemoryMap
 
 %default total
 
+-- The real stuff is in `runUI`
+main : IO ()
+main = pure ()
+
 record St where
   constructor MkSt
   clock : Time
@@ -127,7 +131,3 @@ startUI mainBuf = toPrim $ do
     , videoRunning = False
     , videoRunningCell = videoRunningCell
     }
-
-covering
-main : IO ()
-main = pure ()
