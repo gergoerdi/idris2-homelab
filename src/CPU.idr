@@ -22,7 +22,7 @@ prim__initCPU :
   -> PrimIO CPU
 
 public export
-initCPU : Core -> IO CPU
+initCPU : HasIO io => Core -> io CPU
 initCPU core = primIO $ prim__initCPU
   (\addr => toPrim $ core.readMem addr)
   (\addr, val => toPrim $ core.writeMem addr val)
@@ -30,15 +30,15 @@ initCPU core = primIO $ prim__initCPU
   (\port, val => toPrim $ core.writeIO port val)
 
 %foreign "javascript:lambda: cpu => cpu.run_instruction()"
-prim__runInstruction : CPU -> PrimIO Bits8
+prim__runInstruction : CPU -> PrimIO Bits16
 
 public export
-runInstruction : CPU -> IO Bits8
+runInstruction : HasIO io => CPU -> io Bits16
 runInstruction cpu = primIO $ prim__runInstruction cpu
 
 %foreign "javascript:lambda: cpu => cpu.interrupt(true)"
 prim__triggerNMI : CPU -> PrimIO ()
 
 public export
-triggerNMI : CPU -> IO ()
+triggerNMI : HasIO io => CPU -> io ()
 triggerNMI cpu = primIO $ prim__triggerNMI cpu
