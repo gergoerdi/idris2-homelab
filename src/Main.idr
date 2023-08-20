@@ -24,7 +24,7 @@ main = pure ()
 
 record St where
   constructor MkSt
-  clock : Time
+  clock : Ticks
   frameDone : Bool
   videoRunning : Bool
   videoRunningCell : IORef Bool
@@ -42,7 +42,7 @@ content s =
 display : St -> Cmd Ev
 display s = child (the (Ref HTML.Tag.Div) $ Id "idris") $ content s
 
-tickClock : (Time -> (Bool, Time)) -> St -> St
+tickClock : (Ticks -> (Bool, Ticks)) -> St -> St
 tickClock f s =
   let (frameDone, clock') = f s.clock
   in { frameDone $= (|| frameDone), clock := clock' } s

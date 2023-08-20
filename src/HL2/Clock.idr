@@ -1,6 +1,7 @@
 module HL2.Clock
 
-import Data.Buffer.Index
+import Data.So
+import Data.DPair
 import Data.Nat
 import Control.Monad.Writer
 import Data.IORef
@@ -8,68 +9,71 @@ import Data.IORef
 %default total
 
 public export
-0 CPUFreq : Nat
+0 CPUFreq : Bits32
 CPUFreq = 4_000_000
 
 public export
-0 FPS : Nat
+0 FPS : Bits32
 FPS = 50
 
 public export
-0 HorizCount : Nat
+HorizCount : Bits32
 HorizCount = 256
 
 public export
-0 VisibleLines : Nat
+VisibleLines : Bits32
 VisibleLines = 288
 
 public export
-0 FrameCount : Nat
--- FrameCount = (CPUFreq `divNatNZ` FPS) % search -- This blows up typechecking time :/
+FrameCount : Bits32
+-- FrameCount = (CPUFreq `divBits32NZ` FPS) % search -- This blows up typechecking time :/
 FrameCount = 80_000
 
 public export
-0 BlankCount : Nat
-BlankCount = FrameCount `minus` (HorizCount * VisibleLines)
+BlankCount : Bits32
+BlankCount = FrameCount - (HorizCount * VisibleLines)
+
+0 Counter : Bits32 -> Type
+Counter n = Subset Bits32 (\k => So (k < n))
 
 public export
-data Time : Type where
-  Visible : Index VisibleLines -> Index HorizCount -> Time
-  Blank   : Index BlankCount                       -> Time
+0 Ticks : Type
+Ticks = Counter FrameCount
 
 public export
-Show Time where
-  show (Visible y x) = "Line " <+> show y <+> ", col " <+> show x
-  show (Blank cnt) = "Blank " <+> show cnt
+Show Ticks where
+  show (Element i _) = show i
 
-last : {n : Nat} -> Index (S n)
-last = Element n reflexive
+-- public export
+-- data Time : Type where
+--   Visible : Counter VisibleLines -> Counter HorizCount -> Time
+--   Blank   : Counter BlankCount                         -> Time
+--
+-- fromTicks : Ticks -> Time
+-- fromTicks (Element i p) =
+--   if i < (VisibleLines * HorizCount) then
+--     let x = i `mod` HorizCount
+--         y = i `div` HorizCount
+--     in Visible (Element y ?p3) (Element x ?p4)
+--   else Blank (Element (i - VisibleLines * HorizCount) ?p5)
+--
+-- toTicks : Time -> Ticks
+-- toTicks (Visible (Element y py) (Element x px)) = Element (y * HorizCount + x) ?p1
+-- toTicks (Blank (Element cnt p)) = Element (BlankCount + cnt) ?p2
 
 export
-startTime : Time
-startTime = Visible last last
-
-prev : {n : Nat} -> Index (S n) -> Maybe (Index (S n))
-prev (Element 0 _) = Nothing
-prev (Element (S n) prf) = Just $ Element n $ lteSuccLeft prf
-
-tick1 : Time -> Maybe Time
-tick1 (Blank cnt) = pure $ Blank !(prev cnt)
-tick1 (Visible y x) = pure $ case prev x of
-  Just x' => Visible y x'
-  Nothing => maybe (Blank last) (\y' => Visible y' last) (prev y)
+startTime : Ticks
+startTime = Element 0 Oh
 
 public export
-tick : Nat -> Time -> (Bool, Time)
-tick 0 t = (False, t)
-tick (S n) t =
-     case tick1 t of
-       Nothing => (True, snd $ tick n startTime)
-       Just t' => tick n t'
+tick : Bits32 -> Ticks -> (Bool, Ticks)
+tick n (Element i p) =
+  let same_frame = (i + n) < FrameCount in
+  if same_frame then (False, Element (i + n) ?p)
+  else (True, Element ((i + n) `mod` FrameCount) ?q)
 
 public export
-waitLine : Time -> (Bool, Time)
-waitLine (Blank cnt) = (True, Visible last last)
-waitLine (Visible y x) = case prev y of
-  Just y' => (False, Visible y' last)
-  Nothing => (False, Blank last)
+waitLine : Ticks -> (Bool, Ticks)
+waitLine (Element i p) = (i' >= FrameCount, Element (i' `mod` FrameCount) ?r)
+  where
+    i' = ((i + HorizCount - 1) `mod` HorizCount) * HorizCount
