@@ -86,10 +86,10 @@ view (Init partialMachine) = \s => C $ \queueEvent => do
   writeIORef cpu_cell $ Just cpu
   flip run queueEvent $ withMachine cpu machine $ batch
     [ map Left $ NewFrame `every` 20
-    , map Right $ Tape.display s.tape
+    , map Right $ Tape.setupEvents s.tape
     ]
 view (Run cpu machine (Left ev)) = map (Run cpu machine . Left) . viewMain cpu machine ev
-view (Run cpu machine (Right ev)) = map (Run cpu machine . Right) . Tape.display . tape
+view (Run cpu machine (Right ev)) = map (Run cpu machine . Right) . Tape.display (Just ev) . tape
 
 partial
 untilIO : acc -> (acc -> IO (Either acc r)) -> IO r
