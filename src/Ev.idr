@@ -8,7 +8,7 @@ import Web.MVC
 
 public export
 data Ev : Type where
-  Tick : Bits32 -> Ev
+  Tick : Int -> Ev
   NewFrame : Ev
   VideoOff : Ev
   VideoOn : Ev

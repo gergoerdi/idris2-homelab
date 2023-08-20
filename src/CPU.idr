@@ -30,10 +30,10 @@ initCPU core = primIO $ prim__initCPU
   (\port, val => toPrim $ core.writeIO port val)
 
 %foreign "javascript:lambda: cpu => cpu.run_instruction()"
-prim__runInstruction : CPU -> PrimIO Bits16
+prim__runInstruction : CPU -> PrimIO Int
 
 public export
-runInstruction : HasIO io => CPU -> io Bits16
+runInstruction : HasIO io => CPU -> io Int
 runInstruction cpu = primIO $ prim__runInstruction cpu
 
 %foreign "javascript:lambda: cpu => cpu.interrupt(true)"
