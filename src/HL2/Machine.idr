@@ -32,4 +32,7 @@ record Machine m where
   videoRAM : RAM 0x400
 
   keyState : m KeyState
+
   videoRunning : m Bool
+  videoOn : m ()
+  videoOff : m ()

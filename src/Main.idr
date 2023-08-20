@@ -29,29 +29,27 @@ record St where
   videoRunning : Bool
   videoRunningCell : IORef Bool
 
-withCPU : CPU -> Cmd Ev -> Cmd CPUEv
-withCPU cpu cmd = C $ \handler => run cmd (handler . Run cpu)
+withMachine : CPU -> Machine m -> Cmd ev -> Cmd (MachineEv m ev)
+withMachine cpu machine = map (Run cpu machine)
 
-content : St -> Node Ev
-content s =
-  div []
-    [ button [onClick NewFrame] [Text "Run for one frame"]
-    , p [] [Text $ show s.clock]
-    ]
+display : Main.St -> Cmd Ev.Ev
+display s = neutral
 
 tickClock : (Ticks -> (Int, Ticks)) -> Main.St -> Main.St
 tickClock f s =
   let (frames_finished, clock') = f s.clock
   in { frameDone $= (|| frames_finished > 0), clock := clock' } s
 
-export
-update : CPUEv -> St -> St
-update Init = id
-update (Run cpu ev) = case ev of
+updateMain : Ev.Ev -> Main.St -> Main.St
+updateMain ev = case ev of
   Tick n => tickClock $ tick (cast n)
   NewFrame => { frameDone := False }
   VideoOff => { videoRunning := False }
   VideoOn => { videoRunning := True } . tickClock waitLine
+
+update : MachineEv m Ev -> Main.St -> Main.St
+update (Init _) = id
+update (Run cpu machine ev) = updateMain ev
 
 dataFile : String -> String
 dataFile s = "../data/hl2/" <+> s
@@ -59,27 +57,34 @@ dataFile s = "../data/hl2/" <+> s
 tapeFile : String -> String
 tapeFile s = "../image/hl2/" <+> s
 
-view : Machine IO -> CPUEv -> St -> Cmd CPUEv
-view machine Init s = C $ \queueEvent => do
-  cpu <- liftIO $ do
-    cell <- newIORef Nothing
-    let core = memoryMappedOnly $ HL2.MemoryMap.memoryMap {machine = machine} $ \ev => do
-      Just cpu <- readIORef cell
-        | Nothing => pure ()
-      runJS $ queueEvent (Run cpu ev)
-    cpu <- liftIO $ initCPU core
-    writeIORef cell $ Just cpu
-    pure cpu
-  run (withCPU cpu $ NewFrame `every` 20) queueEvent
-view machine (Run cpu ev) s = withCPU cpu $ case ev of
+viewMain : CPU -> Machine IO -> Ev.Ev -> Main.St -> Cmd Ev.Ev
+viewMain cpu machine ev s = case ev of
   NewFrame => batch
     [ cmdIf s.videoRunning $ liftIO_ $ triggerNMI cpu
     , pure (Tick 0)
+    , display s
     ]
   Tick _ => cmdIf (not s.frameDone) $ liftIO $ do
     Tick . cast <$> runInstruction cpu
   VideoOff => liftIO_ $ writeIORef s.videoRunningCell False
   VideoOn => liftIO_ $ writeIORef s.videoRunningCell True
+
+covering
+view : MachineEv IO Ev -> Main.St -> Cmd (MachineEv IO Ev)
+view (Init partialMachine) = \s => C $ \queueEvent => do
+  cpu_cell <- newIORef Nothing
+  let machine : Machine IO
+      queueEvent' ev = do
+        Just cpu <- readIORef cpu_cell
+          | Nothing => pure ()
+        runJS $ queueEvent $ Run cpu machine $ ev
+      machine = partialMachine (queueEvent' VideoOn) (queueEvent' VideoOff)
+  cpu <- initCPU $ memoryMappedOnly $ HL2.MemoryMap.memoryMap {machine = machine}
+  writeIORef cpu_cell $ Just cpu
+  flip run queueEvent $ withMachine cpu machine $ batch
+    [ NewFrame `every` 20
+    ]
+view (Run cpu machine ev) = map (Run cpu machine) . viewMain cpu machine ev
 
 partial
 untilIO : acc -> (acc -> IO (Either acc r)) -> IO r
@@ -113,7 +118,7 @@ startUI mainBuf = toPrim $ do
   videoRAM <- newRAM 0x400
 
   videoRunningCell <- newIORef False
-  let machine = MkMachine
+  let partialMachine = MkMachine
         { mainROM = mainROM
         , mainRAM = mainRAM
         , videoRAM = videoRAM
@@ -122,7 +127,7 @@ startUI mainBuf = toPrim $ do
         }
 
   startVideo videoRAM
-  runMVC update (view machine) (putStrLn . dispErr) Init $ MkSt
+  runMVC update view (putStrLn . dispErr) (Init partialMachine) $ MkSt
     { clock = startTime
     , frameDone = False
     , videoRunning = False

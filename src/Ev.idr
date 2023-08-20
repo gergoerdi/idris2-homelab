@@ -1,8 +1,7 @@
 module Ev
 
+import HL2.Machine
 import CPU
-import HL2.Clock
-import Web.MVC
 
 %default total
 
@@ -14,6 +13,11 @@ data Ev : Type where
   VideoOn : Ev
 
 public export
-data CPUEv : Type where
-  Init : CPUEv
-  Run : CPU -> Ev -> CPUEv
+data MachineEv : (m : Type -> Type) -> (ev : Type) -> Type where
+  Init : (m () -> m () -> Machine m) -> MachineEv m ev
+  Run : CPU -> Machine m -> ev -> MachineEv m ev
+
+public export
+Functor (MachineEv m) where
+  map f (Init partialMachine) = Init partialMachine
+  map f (Run cpu machine ev) = Run cpu machine (f ev)
