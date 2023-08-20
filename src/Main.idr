@@ -38,18 +38,19 @@ content s =
 display : St -> Cmd Ev
 display s = child (the (Ref HTML.Tag.Div) $ Id "idris") $ content s
 
+tickClock : (Time -> (Bool, Time)) -> St -> St
+tickClock f s =
+  let (frameDone, clock') = f s.clock
+  in { frameDone $= (|| frameDone), clock := clock' } s
+
 export
 update : CPUEv -> St -> St
 update Init = id
 update (Run cpu ev) = case ev of
-  Tick n => \s =>
-    let (frameDone, clock') = tick (cast n) s.clock
-    in { clock := clock', frameDone $= (|| frameDone) } s
+  Tick n => tickClock $ tick (cast n)
   NewFrame => { frameDone := False }
   VideoOff => { videoRunning := False }
-  VideoOn => \s =>
-    let (frameDone, clock') = waitLine s.clock
-    in { videoRunning := True, clock := clock', frameDone $= (|| frameDone) } s
+  VideoOn => { videoRunning := True } . tickClock waitLine
 
 dataFile : String -> String
 dataFile s = "../data/hl2/" <+> s
