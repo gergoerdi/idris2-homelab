@@ -73,9 +73,6 @@ view machine (Run cpu ev) s = withCPU cpu $ case ev of
   NewFrame => batch
     [ cmdIf s.videoRunning $ liftIO_ $ triggerNMI cpu
     , pure (Tick 0)
-    , liftIO_ $ do
-              keyState <- machine.keyState
-              print $ keyState "KeyP"
     ]
   Tick _ => cmdIf (not s.frameDone) $ liftIO $ do
     Tick . cast <$> runInstruction cpu
