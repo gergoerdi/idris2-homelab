@@ -39,13 +39,10 @@ content s =
     , p [] [Text $ show s.clock]
     ]
 
-display : St -> Cmd Ev
-display s = child (the (Ref HTML.Tag.Div) $ Id "idris") $ content s
-
-tickClock : (Ticks -> (Bool, Ticks)) -> St -> St
+tickClock : (Ticks -> (Int, Ticks)) -> Main.St -> Main.St
 tickClock f s =
-  let (frameDone, clock') = f s.clock
-  in { frameDone $= (|| frameDone), clock := clock' } s
+  let (frames_finished, clock') = f s.clock
+  in { frameDone $= (|| frames_finished > 0), clock := clock' } s
 
 export
 update : CPUEv -> St -> St

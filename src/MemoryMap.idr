@@ -43,6 +43,7 @@ record MemoryUnit (m : Type -> Type) (addr : Type) (a : Type) where
   write : addr -> a -> m ()
 
 export
+%inline
 contramap : (addr' -> addr) -> MemoryUnit m addr a -> MemoryUnit m addr' a
 contramap f = { read $= (. f), write $= (. f) }
 

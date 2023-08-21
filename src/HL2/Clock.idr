@@ -1,8 +1,7 @@
 module HL2.Clock
 
-import Data.So
 import Data.DPair
-import Data.Nat
+import Data.Prim.Int
 import Control.Monad.Writer
 import Data.IORef
 
@@ -34,7 +33,7 @@ BlankCount : Int
 BlankCount = FrameCount - (HorizCount * VisibleLines)
 
 0 Counter : Int -> Type
-Counter n = Subset Int (\k => So (k < n))
+Counter n = Subset Int (< n)
 
 public export
 0 Ticks : Type
@@ -63,19 +62,17 @@ Show Ticks where
 
 export
 startTime : Ticks
-startTime = Element 0 Oh
+startTime = Element 0 $ mkLT Refl
 
 mod : {n : Int} -> Int -> Counter n
 mod k = Element (k `mod` n) ?modLT
 
 public export
-tick : Int -> Ticks -> (Bool, Ticks)
-tick n (Element i p) = case choose ((i + n) < FrameCount) of
-  Left lt => (False, Element (i + n) lt)
-  Right ge => (True, mod (i + n))
+tick : Int -> Ticks -> (Int, Ticks)
+tick n (Element i p) = let k = i + n in (k `div` FrameCount, mod k)
 
 public export
-waitLine : Ticks -> (Bool, Ticks)
-waitLine (Element i p) = (i' >= FrameCount, mod i)
+waitLine : Ticks -> (Int, Ticks)
+waitLine (Element i p) = (i' `div` FrameCount, mod i')
   where
     i' = ((i + HorizCount - 1) `mod` HorizCount) * HorizCount

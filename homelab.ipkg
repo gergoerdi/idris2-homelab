@@ -4,6 +4,7 @@ depends    = dom-mvc
            , contrib
            , bytestring
            , tailrec
+           , prim
 
 sourcedir  = "src"
 opts       = "--codegen javascript"
