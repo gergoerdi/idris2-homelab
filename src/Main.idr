@@ -54,12 +54,6 @@ update (Init _) = id
 update (Run cpu machine (Left ev)) = updateMain ev
 update (Run cpu machine (Right ev)) = { tape $= update ev }
 
-dataFile : String -> String
-dataFile s = "../data/hl2/" <+> s
-
-tapeFile : String -> String
-tapeFile s = "../image/hl2/" <+> s
-
 viewMain : CPU -> Machine IO -> Ev.Ev -> Main.St -> Cmd Ev.Ev
 viewMain cpu machine ev s = case ev of
   NewFrame => batch
