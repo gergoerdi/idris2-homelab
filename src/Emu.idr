@@ -53,9 +53,9 @@ tickClock f s =
   in { newFrame $= (|| frames_finished > 0), clock := clock' } s
 
 public export
-%export "javascript:start"
-start : ArrayBuffer -> IO (IO ())
-start mainBuf = do
+%export "javascript:startEmu"
+startEmu : ArrayBuffer -> IO (IO ())
+startEmu mainBuf = do
   mainROM <- pure $ cast mainBuf
   mainRAM <- newRAM 0x4000
   videoRAM <- newRAM 0x400
