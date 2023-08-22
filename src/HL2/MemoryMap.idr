@@ -13,8 +13,8 @@ addressByte : Addr 255 -> Bits8
 addressByte (Element addr _) = cast addr
 
 public export
-memoryMap : HasIO m => (machine: Machine m) => MemoryUnit m Bits16 Bits8
-memoryMap = contramap cast $ memoryMap
+memoryMap : HasIO m => Machine m -> MemoryUnit m Bits16 Bits8
+memoryMap machine = contramap cast $ memoryMap
   [ MkMapEntry{ from = 0x0000, to = 0x1fff, unit = rom machine.mainROM }
   , MkMapEntry{ from = 0x3800, to = 0x39ff, unit = unconnected 0x00 } -- TODO: reset button
   , MkMapEntry{ from = 0x3a00, to = 0x3aff, unit = readOnly keyboard }

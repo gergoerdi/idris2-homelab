@@ -78,8 +78,8 @@ view (Init partialMachine) = \s => C $ \queueEvent => do
         Just cpu <- readIORef cpu_cell
           | Nothing => pure ()
         runJS $ queueEvent $ Run cpu machine $ ev
-      machine = partialMachine (queueEvent' VideoOn) (queueEvent' VideoOff)
-  cpu <- initCPU $ memoryMappedOnly $ HL2.MemoryMap.memoryMap {machine = machine}
+      machine = { videoOn := queueEvent' VideoOn, videoOff := queueEvent' VideoOff } partialMachine
+  cpu <- initCPU $ memoryMappedOnly $ HL2.MemoryMap.memoryMap machine
   writeIORef cpu_cell $ Just cpu
   flip run queueEvent $ withMachine cpu machine $ batch
     [ NewFrame `every` 20
@@ -124,6 +124,8 @@ startUI mainBuf = toPrim $ do
         , videoRAM = videoRAM
         , keyState = keyState
         , videoRunning = readIORef videoRunningCell
+        , videoOn = ()
+        , videoOff = ()
         }
 
   startVideo videoRAM

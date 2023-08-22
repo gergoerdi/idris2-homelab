@@ -14,7 +14,7 @@ data Ev : Type where
 
 public export
 data MachineEv : (m : Type -> Type) -> (ev : Type) -> Type where
-  Init : (m () -> m () -> Machine m) -> MachineEv m ev
+  Init : (MachineSkeleton m Partial) -> MachineEv m ev
   Run : CPU -> Machine m -> ev -> MachineEv m ev
 
 public export

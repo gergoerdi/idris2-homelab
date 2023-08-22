@@ -7,6 +7,8 @@ import Keyboard
 import JS.Array
 import JS.Buffer
 
+%default total
+
 public export
 0 ROM : Nat -> Type
 -- ROM size = ByteVect size
@@ -24,7 +26,15 @@ newRAM : HasIO io => (size : Nat) -> io (RAM size)
 newRAM size = primIO $ prim__newUInt8Array (cast size)
 
 public export
-record Machine m where
+data MachineState = Partial | Filled
+
+public export
+0 late : MachineState -> Type -> Type
+late Partial _ = ()
+late Filled a = a
+
+public export
+record MachineSkeleton (m : Type -> Type) (s : MachineState) where
   constructor MkMachine
 
   mainROM : ROM 0x2000
@@ -34,5 +44,9 @@ record Machine m where
   keyState : m KeyState
 
   videoRunning : m Bool
-  videoOn : m ()
-  videoOff : m ()
+  videoOn : late s (m ())
+  videoOff : late s (m ())
+
+public export
+0 Machine : (Type -> Type) -> Type
+Machine m = MachineSkeleton m Filled
