@@ -8,6 +8,7 @@ import JS.Buffer
 import Data.IORef
 
 import HL2.Clock
+import Tape
 import Ev
 import Core
 import CPU
@@ -28,6 +29,7 @@ record St where
   frameDone : Bool
   videoRunning : Bool
   videoRunningCell : IORef Bool
+  tape : Tape.St
 
 withMachine : CPU -> Machine m -> Cmd ev -> Cmd (MachineEv m ev)
 withMachine cpu machine = map (Run cpu machine)
@@ -47,9 +49,10 @@ updateMain ev = case ev of
   VideoOff => { videoRunning := False }
   VideoOn => { videoRunning := True } . tickClock waitLine
 
-update : MachineEv m Ev -> Main.St -> Main.St
+update : MachineEv m (Either Ev.Ev Tape.Ev) -> Main.St -> Main.St
 update (Init _) = id
-update (Run cpu machine ev) = updateMain ev
+update (Run cpu machine (Left ev)) = updateMain ev
+update (Run cpu machine (Right ev)) = { tape $= update ev }
 
 dataFile : String -> String
 dataFile s = "../data/hl2/" <+> s
@@ -70,21 +73,23 @@ viewMain cpu machine ev s = case ev of
   VideoOn => liftIO_ $ writeIORef s.videoRunningCell True
 
 covering
-view : MachineEv IO Ev -> Main.St -> Cmd (MachineEv IO Ev)
+view : MachineEv IO (Either Ev.Ev Tape.Ev) -> Main.St -> Cmd (MachineEv IO (Either Ev.Ev Tape.Ev))
 view (Init partialMachine) = \s => C $ \queueEvent => do
   cpu_cell <- newIORef Nothing
   let machine : Machine IO
       queueEvent' ev = do
         Just cpu <- readIORef cpu_cell
           | Nothing => pure ()
-        runJS $ queueEvent $ Run cpu machine $ ev
+        runJS $ queueEvent $ Run cpu machine . Left $ ev
       machine = partialMachine (queueEvent' VideoOn) (queueEvent' VideoOff)
   cpu <- initCPU $ memoryMappedOnly $ HL2.MemoryMap.memoryMap {machine = machine}
   writeIORef cpu_cell $ Just cpu
   flip run queueEvent $ withMachine cpu machine $ batch
-    [ NewFrame `every` 20
+    [ map Left $ NewFrame `every` 20
+    , map Right $ Tape.display s.tape
     ]
-view (Run cpu machine ev) = map (Run cpu machine) . viewMain cpu machine ev
+view (Run cpu machine (Left ev)) = map (Run cpu machine . Left) . viewMain cpu machine ev
+view (Run cpu machine (Right ev)) = map (Run cpu machine . Right) . Tape.display . tape
 
 partial
 untilIO : acc -> (acc -> IO (Either acc r)) -> IO r
@@ -132,4 +137,5 @@ startUI mainBuf = toPrim $ do
     , frameDone = False
     , videoRunning = False
     , videoRunningCell = videoRunningCell
+    , tape = startTape
     }
