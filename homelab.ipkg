@@ -10,5 +10,5 @@ sourcedir  = "src"
 opts       = "--codegen javascript"
 
 
-main       = Main
+main       = Emu
 executable = "main.js"

@@ -14,5 +14,5 @@ const startVideo = async vram => {
 
 (async () => {
     const main_buf = await (await fetch("../data/hl2/rom.bin")).arrayBuffer();
-    startUI(main_buf);
+    const stop = start(main_buf);
 })();

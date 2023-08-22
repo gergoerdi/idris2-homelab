@@ -12,7 +12,7 @@ CPUFreq : Int
 CPUFreq = 4_000_000
 
 public export
-0 FPS : Int
+FPS : Int
 FPS = 50
 
 public export
