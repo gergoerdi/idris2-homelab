@@ -47,6 +47,9 @@ record MachineSkeleton (m : Type -> Type) (s : MachineState) where
   videoOn : late s (m ())
   videoOff : late s (m ())
 
+  tapeIn : m Bool
+  tapeOut : m ()
+
 public export
 0 Machine : (Type -> Type) -> Type
 Machine m = MachineSkeleton m Filled

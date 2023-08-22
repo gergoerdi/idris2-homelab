@@ -126,6 +126,8 @@ startUI mainBuf = toPrim $ do
         , videoRunning = readIORef videoRunningCell
         , videoOn = ()
         , videoOff = ()
+        , tapeOut = pure ()
+        , tapeIn = pure False
         }
 
   startVideo videoRAM
