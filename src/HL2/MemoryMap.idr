@@ -1,7 +1,7 @@
 module HL2.MemoryMap
 
 import Data.Nat
-import Data.So
+import Data.Prim.Bits16
 
 import Ev
 import MemoryMap
@@ -9,7 +9,7 @@ import Keyboard
 import HL2.Keyboard
 import HL2.Machine
 
-addressByte : Addr 256 -> Bits8
+addressByte : Addr 255 -> Bits8
 addressByte (Element addr _) = cast addr
 
 public export

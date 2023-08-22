@@ -1,9 +1,10 @@
 module MemoryMap
 
-import Data.So
-import Data.Fin
+import Data.Prim.Bits16
+import Data.Prim.Ord
 import public Data.DPair
-import Data.ByteVect
+
+-- import Data.ByteVect
 import JS.Buffer
 import Data.Array.Fast
 
@@ -14,27 +15,24 @@ public export
 RawAddr = Bits16
 
 public export
-0 Addr : Nat -> Type
-Addr n = Subset RawAddr (\i => cast i `LT` n)
+0 Addr : RawAddr -> Type
+Addr max = Subset RawAddr (<= max)
 
 public export
-0 AddrFromTo : Nat -> Nat -> Type
-AddrFromTo from to = Addr (S (to `minus` from))
-
-0 minusRaw :
-     (x : RawAddr)
-  -> (y : RawAddr)
-  -> (prf : cast x `LTE` cast y)
-  -> cast (y - x) = cast y `minus` cast x
+0 AddrFromTo : RawAddr -> RawAddr -> Type
+AddrFromTo from to = Addr (to - from)
 
 inRange :
      (from : RawAddr)
   -> (to : RawAddr)
+  -> (0 valid : from <= to)
   -> (addr : RawAddr)
-  -> (0 lower : cast from `LTE` cast addr)
-  -> (0 upper : cast addr `LTE` cast to)
+  -> (0 lower : from <= addr)
+  -> (0 upper : addr <= to)
   -> AddrFromTo (cast from) (cast to)
-inRange from to addr lower upper = Element (addr - from) $ LTESucc $ rewrite (minusRaw from addr lower) in minusLteMonotone upper
+inRange from to valid addr lower upper = Element (addr - from) $ case upper of
+  Left lt => Left ?p
+  Right eq => Right $ rewrite eq in Refl
 
 public export
 record MemoryUnit (m : Type -> Type) (addr : Type) (a : Type) where
@@ -51,7 +49,7 @@ public export
 record MapEntry (m : Type -> Type) (a : Type) where
   constructor MkMapEntry
   from, to : RawAddr
-  {auto 0 prf : So (to >= from)}
+  {auto 0 valid : from <= to}
   unit : MemoryUnit m (AddrFromTo (cast from) (cast to)) a
 
 export
@@ -62,11 +60,8 @@ memoryMap units unit0 = MkMemoryUnit (\addr => read (find addr) ()) (\addr => wr
     find addr = go units
       where
         go : List (MapEntry m a) -> MemoryUnit m () a
-        go (MkMapEntry from to unit :: units) = case (from <= addr, addr <= to) of
-          (True, True) =>
-            let 0 lower = fromMaybe (assert_total $ idris_crash "p") $ cast from `maybeLTE` cast addr
-                0 upper = fromMaybe (assert_total $ idris_crash "q") $ cast addr `maybeLTE` cast to
-            in contramap (\() => inRange from to addr lower upper) unit
+        go (MkMapEntry from to {valid} unit :: units) = case (from `testGT` addr, addr `testGT` to) of
+          (Right0 lower, Right0 upper) => contramap (\() => inRange from to valid addr lower upper) unit
           _ => go units
         go [] = unit0
 
