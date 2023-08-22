@@ -8,6 +8,7 @@ import Web.MVC
 -- import Data.IORef
 
 import Emu
+import Tape
 import Ev
 
 %default total
@@ -18,24 +19,23 @@ main = pure ()
 
 record St where
   constructor MkSt
+  tape : Tape.St
 
 update : Ev.Ev -> Main.St -> Main.St
 update Init = id
-
-dataFile : String -> String
-dataFile s = "../data/hl2/" <+> s
-
-tapeFile : String -> String
-tapeFile s = "../image/hl2/" <+> s
+update (TapeEv ev) = { tape $= update ev }
 
 covering
 view : Ev.Ev -> Main.St -> Cmd Ev.Ev
 view Init s = batch
-  [
+  [ TapeEv <$> Tape.setupEvents s.tape
   ]
+view (TapeEv ev) s = TapeEv <$> Tape.display (Just ev) s.tape
 
 public export
 covering
 %export "javascript:startUI"
 startUI : PrimIO ()
-startUI = toPrim $ runMVC update view (putStrLn . dispErr) Init $ MkSt {}
+startUI = toPrim $ runMVC update view (putStrLn . dispErr) Init $ MkSt
+  { tape = startTape
+  }

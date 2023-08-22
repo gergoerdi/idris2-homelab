@@ -1,6 +1,7 @@
 package homelab
 version    = 0.0.1
-depends    = dom-mvc
+depends    = dom
+           , dom-mvc
            , contrib
            , bytestring
            , tailrec
