@@ -47,9 +47,9 @@ record St where
   newFrame : Bool
   videoRunning : Bool
 
-tickClock : (Ticks -> (Int, Ticks)) -> St -> St
+tickClock : (Ticks -> (Ticks, Int)) -> St -> St
 tickClock f s =
-  let (frames_finished, clock') = f s.clock
+  let (clock', frames_finished) = f s.clock
   in { newFrame $= (|| frames_finished > 0), clock := clock' } s
 
 public export
