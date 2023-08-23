@@ -1,4 +1,4 @@
-module HL2.Clock
+module Emu.HL2.Clock
 
 import Data.DPair
 import Data.Prim.Int

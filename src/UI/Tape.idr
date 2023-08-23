@@ -1,4 +1,4 @@
-module Tape
+module UI.Tape
 
 import JSON.Simple.Derive
 
@@ -11,7 +11,7 @@ import Text.HTML.Ref
 import JS.Array
 
 import Paths
-import HL2.Clock
+import Emu.HL2.Clock
 
 %default total
 %language ElabReflection

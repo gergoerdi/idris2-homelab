@@ -1,7 +1,7 @@
-module CPU
+module Emu.CPU
 
 import Web.MVC
-import Core
+import Emu.Core
 
 export
 data CPU : Type where [external]

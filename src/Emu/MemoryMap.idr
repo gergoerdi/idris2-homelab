@@ -1,4 +1,4 @@
-module MemoryMap
+module Emu.MemoryMap
 
 import Data.Prim.Bits16
 import Data.Prim.Ord

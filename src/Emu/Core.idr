@@ -1,7 +1,7 @@
-module Core
+module Emu.Core
 
 import Web.MVC
-import MemoryMap
+import Emu.MemoryMap
 
 public export
 record Core where

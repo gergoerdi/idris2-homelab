@@ -1,6 +1,6 @@
-module Ev
+module UI.Ev
 
-import Tape
+import UI.Tape
 
 %default total
 

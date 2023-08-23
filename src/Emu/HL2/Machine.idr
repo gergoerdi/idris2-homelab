@@ -1,8 +1,8 @@
-module HL2.Machine
+module Emu.HL2.Machine
 
 import Data.Buffer.Index
 import Data.ByteVect
-import Keyboard
+import Emu.Keyboard
 
 import JS.Array
 import JS.Buffer

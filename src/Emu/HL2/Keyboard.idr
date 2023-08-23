@@ -1,6 +1,6 @@
-module HL2.Keyboard
+module Emu.HL2.Keyboard
 
-import Keyboard
+import Emu.Keyboard
 import Data.Buffer.Index
 import Data.Vect
 import Data.Bits.Fast

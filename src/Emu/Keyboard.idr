@@ -1,4 +1,4 @@
-module Keyboard
+module Emu.Keyboard
 
 import Data.SortedMap
 

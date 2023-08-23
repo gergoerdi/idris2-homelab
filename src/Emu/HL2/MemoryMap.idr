@@ -1,11 +1,11 @@
-module HL2.MemoryMap
+module Emu.HL2.MemoryMap
 
 import Data.Prim.Bits16
 
-import MemoryMap
-import Keyboard
-import HL2.Keyboard
-import HL2.Machine
+import Emu.MemoryMap
+import Emu.Keyboard
+import Emu.HL2.Keyboard
+import Emu.HL2.Machine
 
 addressByte : Addr 255 -> Bits8
 addressByte (Element addr _) = cast addr

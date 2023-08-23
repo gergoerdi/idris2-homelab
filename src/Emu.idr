@@ -4,17 +4,13 @@ import Data.IORef
 import JS.Buffer
 import Web.Interval
 
-import CPU
-import MemoryMap
-import Core
-import HL2.Machine
-import HL2.MemoryMap
-import HL2.Clock
-import Keyboard
-
--- The real stuff is in `start`
-main : IO ()
-main = pure ()
+import Emu.CPU
+import Emu.MemoryMap
+import Emu.Core
+import Emu.HL2.Machine
+import Emu.HL2.MemoryMap
+import Emu.HL2.Clock
+import Emu.Keyboard
 
 covering
 untilIO : acc -> (acc -> IO (Either acc r)) -> IO r
@@ -54,7 +50,7 @@ tickClock f s =
 
 public export
 %export "javascript:startEmu"
-startEmu : ArrayBuffer -> IO (IO ())
+startEmu : ArrayBuffer -> IO ()
 startEmu mainBuf = do
   mainROM <- pure $ cast mainBuf
   mainRAM <- newRAM 0x4000
@@ -102,5 +98,5 @@ startEmu mainBuf = do
         untilNewFrame $ do
           cnt <- liftIO $ runInstruction cpu
           modify $ tickClock $ tick cnt
-  interval_id <- setInterval (cast $ 1000 `div` FPS) runFrame
-  pure $ clearInterval interval_id
+  _ <- setInterval (cast $ 1000 `div` FPS) runFrame
+  pure ()
