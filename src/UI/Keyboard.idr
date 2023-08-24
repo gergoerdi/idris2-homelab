@@ -22,15 +22,19 @@ init = empty
 
 public export
 update : Ev -> St -> St
-update Blur = id
+update Blur = const empty
 update (Key press code) = setKeyState press code
+
+%foreign "javascript:lambda: setOnBlur"
+prim__setOnBlur : IO () -> PrimIO ()
 
 public export
 setupEvents : St -> Cmd Ev
 setupEvents s = batch
-  [ attr Body $ onBlur Blur
-  , attr Body $ Event . KeyDown $ Just . Key True . code
+  [ attr Body $ Event . KeyDown $ Just . Key True . code
   , attr Body $ Event . KeyUp $ Just . Key False . code
+  -- , attr Window $ onBlur Blur -- TODO: runtime type error
+  , C $ \enqueueEvent => liftIO $ primIO $ prim__setOnBlur $ runJS . enqueueEvent $ Blur
   ]
 
 public export
