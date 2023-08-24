@@ -1,8 +1,11 @@
 module Emu
 
 import Data.IORef
+import JS.Util
 import JS.Buffer
 import Web.Interval
+
+import UI
 
 import Emu.CPU
 import Emu.MemoryMap
@@ -75,12 +78,15 @@ startEmu mainBuf = do
         modify { newFrame := False }
         untilM $ act *> get newFrame
 
+  keyState <- newIORef empty
+  let sinkKeys = liftIO . writeIORef keyState
+
   let machine : Machine IO
       machine = MkMachine
         { mainROM = mainROM
         , mainRAM = mainRAM
         , videoRAM = videoRAM
-        , keyState = pure (\_ => False) -- ?keyState
+        , keyState = readIORef keyState
         , videoRunning = get videoRunning
         , videoOn = modify $ { videoRunning := True } . tickClock waitLine
         , videoOff = modify { videoRunning := False }
@@ -99,4 +105,4 @@ startEmu mainBuf = do
           cnt <- liftIO $ runInstruction cpu
           modify $ tickClock $ tick cnt
   _ <- setInterval (cast $ 1000 `div` FPS) runFrame
-  pure ()
+  startUI sinkKeys

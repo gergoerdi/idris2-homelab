@@ -21,7 +21,9 @@ readRow : KeyState -> Vect 8 (Maybe KeyCode) -> Bits8
 readRow keyState = foldl (\val, mb_code => readKey mb_code $ val `shiftR` 1) 0x00
   where
     readKey : Maybe KeyCode -> Bits8 -> Bits8
-    readKey code val = if maybe False keyState code then val else val `setBit` 7
+    readKey code val =
+      let pressed = maybe False (keyPressed keyState) code
+      in if pressed then val else val `setBit` 7
 
 public export
 keyboardByte : KeyState -> Bits8 -> Bits8
