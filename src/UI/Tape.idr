@@ -11,7 +11,7 @@ import Text.HTML.Ref
 import JS.Array
 
 import Paths
-import Emu.HL2.Clock
+import Emu.Tape
 
 %default total
 %language ElabReflection
@@ -34,38 +34,20 @@ data Ev : Type where
   LoadTapes : Either HTTPError (List TapeMeta) -> Ev
   LoadTape : String -> Ev
 
-record AudioTape where
-  constructor MkAudioTape
-  sampleRate : Bits32
-  buffer : IArray Double
-
-namespace AudioTape
-  tapeLength : AudioTape -> Bits32
-  tapeLength tape = (size tape.buffer * cast CPUFreq) `div` tape.sampleRate
-
-data Tape : Type where
-  Audio : AudioTape -> Tape
-
-tapeLength : Tape -> Bits32
-tapeLength (Audio tape) = tapeLength tape
-
 export
 record St where
   constructor MkSt
   tapes : List TapeMeta
-  tape : Maybe Tape
-  position: Bits32
-  playing : Bool
-  recording : Bool
+  deck : Deck
+
+updateDeck : (Deck -> Deck) -> St -> St
+updateDeck f = { deck $= f }
 
 public export
 startTape : St
 startTape = MkSt
   { tapes = []
-  , tape = Nothing
-  , position = 0
-  , playing = False
-  , recording = False
+  , deck = startDeck
   }
 
 playBtn : Ref Tag.Button
@@ -94,9 +76,9 @@ tapeList = Id "tape-cards"
 
 public export
 update : Ev -> St -> St
-update PlayPause = { playing $= not }
-update Rewind = { position := 0 }
-update (Record b) = { recording := b }
+update PlayPause = updateDeck { playing $= not }
+update Rewind = updateDeck { position := 0 }
+update (Record b) = updateDeck { recording := b }
 update Eject = id
 update (LoadTapes err_tapes) = case err_tapes of
   Left err => id
@@ -128,27 +110,30 @@ printError (JSONError str x) =
   \{prettyErr str x}
   """
 
-public export
-display : Maybe Ev -> St -> Cmd Ev
-display ev s = batch
-  [ disabled rewindBtn (isNothing s.tape)
-  , disabled playBtn (isNothing s.tape)
-  , disabled recordBtn (isNothing s.tape)
+updateView : St -> Cmd Ev
+updateView s = batch
+  [ disabled rewindBtn (isNothing s.deck.tape)
+  , disabled playBtn (isNothing s.deck.tape)
+  , disabled recordBtn (isNothing s.deck.tape)
 
-  , child playBtn $ span [ classes ["bi", if s.playing then "bi-pause-fill" else "bi-play-fill"] ] []
-  , attr recordBtn $ checked s.recording
-  , attr tracker $ showAttr "max" $ maybe 0 tapeLength s.tape
-  , value tracker $ show s.position
-  ] <+> case ev of
-  Just Eject => batch
+  , child playBtn $ span [ classes ["bi", if s.deck.playing then "bi-pause-fill" else "bi-play-fill"] ] []
+  , attr recordBtn $ checked s.deck.recording
+  , attr tracker $ showAttr "max" $ maybe 0 tapeLength s.deck.tape
+  , value tracker $ show s.deck.position
+  ]
+
+public export
+display : Ev -> St -> Cmd Ev
+display ev s = updateView s <+> case ev of
+  Eject => batch
     [ getJSON (tapeFile "tapes.json") LoadTapes
     , cmd_ $ showModal =<< castElementByRef {t = HTMLDialogElement} tapeselDlg
     ]
-  Just (LoadTapes (Left err)) =>
+  LoadTapes (Left err) =>
     cmd_ $ putStrLn (printError err)
-  Just (LoadTapes (Right _)) =>
+  LoadTapes (Right _) =>
     children tapeList $ map tapeCard s.tapes
-  Just (LoadTape filename) => batch
+  LoadTape filename => batch
     [ cmd_ $ do
         close =<< castElementByRef {t = HTMLDialogElement} tapeselDlg
     ]
@@ -157,7 +142,7 @@ display ev s = batch
 public export
 setupEvents : St -> Cmd Ev
 setupEvents s = batch
-  [ display Nothing s
+  [ updateView s
   , attr playBtn $ onClick $ PlayPause
   , attr recordBtn $ onChecked Record
   , attr rewindBtn $ onClick Rewind
