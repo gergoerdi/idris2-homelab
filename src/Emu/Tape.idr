@@ -1,6 +1,7 @@
 module Emu.Tape
 
 import JS.Array
+import Web.Audio
 import Emu.HL2.Clock
 
 record AudioTape where
@@ -19,6 +20,12 @@ export
 tapeLength : Tape -> Bits32
 tapeLength (Audio tape) = tapeLength tape
 
+audioTape : AudioBuffer -> Tape
+-- audioTape buf = Audio $ MkAudioTape
+--   { sampleRate = sampleRate buf
+--   , buffer = freeze $ channelData buf 0
+--   }
+
 public export
 record Deck where
   constructor MkDeck
@@ -35,3 +42,7 @@ startDeck = MkDeck
   , playing = False
   , recording = False
   }
+
+export
+loadAudioTape : AudioBuffer -> Deck
+loadAudioTape audioBuffer = { tape := Just $ audioTape audioBuffer } startDeck

@@ -11,6 +11,7 @@ import Text.HTML.Ref
 import JS.Array
 
 import Paths
+import Web.Audio
 import Emu.Tape
 
 %default total
@@ -25,6 +26,9 @@ record TapeMeta where
 
 %runElab derive "TapeMeta" [customFromJSON $ { replaceMissingKeysWithNull := True } defaultOptions]
 
+%foreign "javascript:lambda: (url, cb) => load_audio_(url, cb)"
+prim__loadAudio : String -> (AudioBuffer -> IO ()) -> PrimIO ()
+
 export
 data Ev : Type where
   PlayPause : Ev
@@ -33,6 +37,7 @@ data Ev : Type where
   Eject : Ev
   LoadTapes : Either HTTPError (List TapeMeta) -> Ev
   LoadTape : String -> Ev
+  TapeLoaded : AudioBuffer -> Ev
 
 export
 record St where
@@ -84,10 +89,11 @@ update (LoadTapes err_tapes) = case err_tapes of
   Left err => id
   Right tapes => { tapes := tapes }
 update (LoadTape filename) = id -- TODO
+update (TapeLoaded audioBuffer) = { deck := loadAudioTape audioBuffer }
 
 tapeCard : TapeMeta -> Node Ev
 tapeCard tape = div [class "card"]
-  [ div [class "card-body", onClick $ LoadTape tape.filename ]
+  [ div [class "card-body", onClick $ LoadTape (tapeFile tape.filename) ]
     [ h5 [class "card-title"] [Text tape.title]
     , p [class "card-text"] [Text $ fromMaybe "" tape.desc]
     ]
@@ -134,8 +140,9 @@ display ev s = updateView s <+> case ev of
   LoadTapes (Right _) =>
     children tapeList $ map tapeCard s.tapes
   LoadTape filename => batch
-    [ cmd_ $ do
+    [ C $ \enqueueEvent => do
         close =<< castElementByRef {t = HTMLDialogElement} tapeselDlg
+        liftIO $ primIO $ prim__loadAudio filename $ runJS . enqueueEvent . TapeLoaded
     ]
   _ => neutral
 
