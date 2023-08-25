@@ -67,6 +67,5 @@ namespace Writers
     overrun $ k + n
 
   public export
-  waitLine : Ticks -> (Ticks, Int)
-  waitLine (Element i p) = runWriter $ do
-    overrun $ ((i + HorizCount - 1) `mod` HorizCount) * HorizCount
+  nextLine : Ticks -> Int
+  nextLine (Element i _) = HorizCount - (i `mod` HorizCount) + 1

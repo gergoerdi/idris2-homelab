@@ -46,10 +46,13 @@ record St where
   newFrame : Bool
   videoRunning : Bool
 
-tickClock : (Ticks -> (Ticks, Int)) -> St -> St
-tickClock f s =
-  let (clock', frames_finished) = f s.clock
-  in { newFrame $= (|| frames_finished > 0), clock := clock' } s
+tickClock : Int -> St -> St
+tickClock k s =
+    let (clock', frames_finished) = tick k s.clock
+    in { newFrame $= (|| frames_finished > 0), clock := clock' } s
+
+waitLine : St -> St
+waitLine s = tickClock (nextLine s.clock) s
 
 public export
 %export "javascript:startEmu"
@@ -88,7 +91,7 @@ startEmu mainBuf = do
         , videoRAM = videoRAM
         , keyState = readIORef keyState
         , videoRunning = get videoRunning
-        , videoOn = modify $ { videoRunning := True } . tickClock waitLine
+        , videoOn = modify $ { videoRunning := True } . waitLine
         , videoOff = modify { videoRunning := False }
         , tapeIn = pure False
         , tapeOut = pure ()
@@ -103,6 +106,6 @@ startEmu mainBuf = do
         when video_running $ triggerNMI cpu
         untilNewFrame $ do
           cnt <- liftIO $ runInstruction cpu
-          modify $ tickClock $ tick cnt
+          modify $ tickClock cnt
   _ <- setInterval (cast $ 1000 `div` FPS) runFrame
   startUI sinkKeys
