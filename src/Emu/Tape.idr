@@ -13,6 +13,7 @@ namespace AudioTape
   tapeLength : AudioTape -> Bits32
   tapeLength tape = (size tape.buffer * cast CPUFreq) `div` tape.sampleRate
 
+export
 data Tape : Type where
   Audio : AudioTape -> Tape
 
@@ -20,11 +21,12 @@ export
 tapeLength : Tape -> Bits32
 tapeLength (Audio tape) = tapeLength tape
 
-audioTape : AudioBuffer -> Tape
--- audioTape buf = Audio $ MkAudioTape
---   { sampleRate = sampleRate buf
---   , buffer = freeze $ channelData buf 0
---   }
+export
+audioTape : AudioBuffer -> IO Tape
+audioTape buf = pure $ Audio $ MkAudioTape
+  { sampleRate = sampleRate buf
+  , buffer = !(freezeCloneIO $ channelData buf 0)
+  }
 
 public export
 record Deck where
@@ -42,7 +44,3 @@ startDeck = MkDeck
   , playing = False
   , recording = False
   }
-
-export
-loadAudioTape : AudioBuffer -> Deck
-loadAudioTape audioBuffer = { tape := Just $ audioTape audioBuffer } startDeck

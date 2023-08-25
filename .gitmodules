@@ -1,3 +1,6 @@
 [submodule "js/Z80.js"]
 	path = js/import/Z80.js
 	url = git@github.com:DrGoldfire/Z80.js.git
+[submodule "import/idris2-dom"]
+	path = import/idris2-dom
+	url = https://github.com/stefan-hoeck/idris2-dom/

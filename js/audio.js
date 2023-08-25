@@ -8,5 +8,5 @@ const load_audio = async (url) => {
     return buf;
 }
 
-const load_audio_ = (url, cb) => load_audio(url).then(cb);
+const load_audio_ = (url, cb) => load_audio(url).then(buf => cb(buf)());
 

@@ -1,0 +1,4 @@
+[custom.all.js]
+type = "local"
+path = "import/idris2-dom/js"
+ipkg = "js.ipkg"

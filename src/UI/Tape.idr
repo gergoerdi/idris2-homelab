@@ -37,7 +37,7 @@ data Ev : Type where
   Eject : Ev
   LoadTapes : Either HTTPError (List TapeMeta) -> Ev
   LoadTape : String -> Ev
-  TapeLoaded : AudioBuffer -> Ev
+  TapeLoaded : Tape -> Ev
 
 export
 record St where
@@ -89,7 +89,7 @@ update (LoadTapes err_tapes) = case err_tapes of
   Left err => id
   Right tapes => { tapes := tapes }
 update (LoadTape filename) = id -- TODO
-update (TapeLoaded audioBuffer) = { deck := loadAudioTape audioBuffer }
+update (TapeLoaded tape) = updateDeck { tape := Just tape }
 
 tapeCard : TapeMeta -> Node Ev
 tapeCard tape = div [class "card"]
@@ -142,8 +142,10 @@ display ev s = updateView s <+> case ev of
   LoadTape filename => batch
     [ C $ \enqueueEvent => do
         close =<< castElementByRef {t = HTMLDialogElement} tapeselDlg
-        liftIO $ primIO $ prim__loadAudio filename $ runJS . enqueueEvent . TapeLoaded
-    ]
+        liftIO $ primIO $ prim__loadAudio filename $ \audioBuffer => do
+          tape <- audioTape audioBuffer
+          runJS . enqueueEvent . TapeLoaded $ tape
+     ]
   _ => neutral
 
 public export
