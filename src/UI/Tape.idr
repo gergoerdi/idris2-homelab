@@ -1,5 +1,7 @@
 module UI.Tape
 
+import Data.IORef
+
 import JSON.Simple.Derive
 
 import Web.MVC
@@ -43,16 +45,11 @@ export
 record St where
   constructor MkSt
   tapes : List TapeMeta
-  deck : Deck
-
-updateDeck : (Deck -> Deck) -> St -> St
-updateDeck f = { deck $= f }
 
 public export
 startTape : St
 startTape = MkSt
   { tapes = []
-  , deck = startDeck
   }
 
 playBtn : Ref Tag.Button
@@ -79,17 +76,22 @@ monitor = Id "tape-monitor"
 tapeList : Ref Tag.Div
 tapeList = Id "tape-cards"
 
-public export
-update : Ev -> St -> St
-update PlayPause = updateDeck { playing $= not }
-update Rewind = updateDeck { position := 0 }
-update (Record b) = updateDeck { recording := b }
-update Eject = id
-update (LoadTapes err_tapes) = case err_tapes of
+export
+update1 : Ev -> St -> St
+update1 Eject = id
+update1 (LoadTapes err_tapes) = case err_tapes of
   Left err => id
   Right tapes => { tapes := tapes }
-update (LoadTape filename) = id -- TODO
-update (TapeLoaded tape) = updateDeck { tape := Just tape }
+update1 (LoadTape filename) = id -- TODO
+update1 _ = id
+
+export
+update2 : Ev -> St -> Deck -> Deck
+update2 PlayPause _ = { playing $= not }
+update2 Rewind _ = { position := 0, playing := False, recording := False }
+update2 (Record b) _ = { recording := b }
+update2 (TapeLoaded tape) _ = { tape := Just tape, playing := False, recording := False }
+update2 _ _ = id
 
 tapeCard : TapeMeta -> Node Ev
 tapeCard tape = div [class "card"]
@@ -116,21 +118,32 @@ printError (JSONError str x) =
   \{prettyErr str x}
   """
 
-updateView : St -> Cmd Ev
-updateView s = batch
-  [ disabled rewindBtn (isNothing s.deck.tape)
-  , disabled playBtn (isNothing s.deck.tape)
-  , disabled recordBtn (isNothing s.deck.tape)
+export
+updateView : St -> Deck -> Cmd ev
+updateView s deck = batch
+  [ disabled rewindBtn (isNothing deck.tape)
+  , disabled playBtn (isNothing deck.tape)
+  , disabled recordBtn (isNothing deck.tape)
 
-  , child playBtn $ span [ classes ["bi", if s.deck.playing then "bi-pause-fill" else "bi-play-fill"] ] []
-  , attr recordBtn $ checked s.deck.recording
-  , attr tracker $ showAttr "max" $ maybe 0 tapeLength s.deck.tape
-  , value tracker $ show s.deck.position
+  , child playBtn $ span [ classes ["bi", if deck.playing then "bi-pause-fill" else "bi-play-fill"] ] []
+  , attr recordBtn $ checked deck.recording
+  , attr tracker $ showAttr "max" $ maybe 0 tapeLength deck.tape
+  , value tracker $ show deck.position
   ]
 
-public export
-display : Ev -> St -> Cmd Ev
-display ev s = updateView s <+> case ev of
+export
+setupView : St -> Deck -> Cmd Ev
+setupView s deck = batch
+  [ attr playBtn $ onClick $ PlayPause
+  , attr recordBtn $ onChecked Record
+  , attr rewindBtn $ onClick Rewind
+  , attr ejectBtn $ onClick Eject
+  , updateView s deck
+  ]
+
+export
+display : Ev -> St -> Deck -> Cmd Ev
+display ev s deck = updateView s deck <+> case ev of
   Eject => batch
     [ getJSON (tapeFile "tapes.json") LoadTapes
     , cmd_ $ showModal =<< castElementByRef {t = HTMLDialogElement} tapeselDlg
@@ -147,13 +160,3 @@ display ev s = updateView s <+> case ev of
           runJS . enqueueEvent . TapeLoaded $ tape
      ]
   _ => neutral
-
-public export
-setupEvents : St -> Cmd Ev
-setupEvents s = batch
-  [ updateView s
-  , attr playBtn $ onClick $ PlayPause
-  , attr recordBtn $ onChecked Record
-  , attr rewindBtn $ onClick Rewind
-  , attr ejectBtn $ onClick Eject
-  ]

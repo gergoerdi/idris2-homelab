@@ -6,6 +6,7 @@ import JS.Buffer
 import Web.Interval
 
 import UI
+import UI.Mutable
 
 import Emu.CPU
 import Emu.MemoryMap
@@ -14,6 +15,7 @@ import Emu.HL2.Machine
 import Emu.HL2.MemoryMap
 import Emu.HL2.Clock
 import Emu.Keyboard
+import Emu.Tape
 
 covering
 untilIO : acc -> (acc -> IO (Either acc r)) -> IO r
@@ -45,11 +47,16 @@ record St where
   clock : Ticks
   newFrame : Bool
   videoRunning : Bool
+  deck : Deck
 
 tickClock : Int -> St -> St
 tickClock k s =
     let (clock', frames_finished) = tick k s.clock
-    in { newFrame $= (|| frames_finished > 0), clock := clock' } s
+    in
+      { newFrame $= (|| frames_finished > 0)
+      , clock := clock'
+      , deck $= tick k
+      } s
 
 waitLine : St -> St
 waitLine s = tickClock (nextLine s.clock) s
@@ -66,15 +73,14 @@ startEmu mainBuf = do
     { clock = startTime
     , newFrame = False
     , videoRunning = False
+    , deck = startDeck
     }
 
   let get : HasIO io => (St -> a) -> io a
       get f = liftIO $ f <$> readIORef cell
 
       modify : HasIO io => (St -> St) -> io ()
-      modify f = liftIO $ do
-        s <- readIORef cell
-        writeIORef cell (f s)
+      modify f = liftIO $ modifyIORef cell f
 
   let untilNewFrame : IO () -> IO ()
       untilNewFrame act = do
@@ -93,13 +99,14 @@ startEmu mainBuf = do
         , videoRunning = get videoRunning
         , videoOn = modify $ { videoRunning := True } . waitLine
         , videoOff = modify { videoRunning := False }
-        , tapeIn = pure False
+        , tapeIn = get $ read . deck
         , tapeOut = pure ()
         }
 
   startVideo videoRAM
 
   cpu <- initCPU $ memoryMappedOnly $ HL2.MemoryMap.memoryMap machine
+  enqueueEvent_cell <- newIORef $ the (UI.Ev -> JSIO ()) $ \_ => pure ()
   let runFrame : IO ()
       runFrame = do
         video_running <- get videoRunning
@@ -107,5 +114,12 @@ startEmu mainBuf = do
         untilNewFrame $ do
           cnt <- liftIO $ runInstruction cpu
           modify $ tickClock cnt
+        enqueueEvent <- readIORef enqueueEvent_cell
+        runJS $ enqueueEvent NewFrame
   _ <- setInterval (cast $ 1000 `div` FPS) runFrame
-  startUI sinkKeys
+
+  startUI enqueueEvent_cell sinkKeys $
+    MkMutable
+      { read = get deck
+      , modify = \f => modify { deck $= f }
+      }
