@@ -33,7 +33,7 @@ prim__loadAudio : String -> (AudioBuffer -> IO ()) -> PrimIO ()
 
 export
 data Ev : Type where
-  PlayPause : Ev
+  PlayPause : Bool -> Ev
   Record : Bool -> Ev
   Rewind : Ev
   Eject : Ev
@@ -52,7 +52,7 @@ startTape = MkSt
   { tapes = []
   }
 
-playBtn : Ref Tag.Button
+playBtn : Ref Tag.Input
 playBtn = Id "tape-btn-play"
 
 rewindBtn : Ref Tag.Button
@@ -87,7 +87,7 @@ update1 _ = id
 
 export
 update2 : Ev -> St -> Deck -> Deck
-update2 PlayPause _ = { playing $= not }
+update2 (PlayPause b) _ = { playing := b }
 update2 Rewind _ = { position := 0, playing := False, recording := False }
 update2 (Record b) _ = { recording := b }
 update2 (TapeLoaded tape) _ = { tape := Just tape, playing := False, recording := False }
@@ -125,8 +125,9 @@ updateView s deck = batch
   , disabled playBtn (isNothing deck.tape)
   , disabled recordBtn (isNothing deck.tape)
 
-  , child playBtn $ span [ classes ["bi", if deck.playing then "bi-pause-fill" else "bi-play-fill"] ] []
+  -- , child playBtn $ span [ classes ["bi", if deck.playing then "bi-pause-fill" else "bi-play-fill"] ] []
   , attr recordBtn $ checked deck.recording
+  , attr playBtn $ checked deck.playing
   , attr tracker $ showAttr "max" $ maybe 0 tapeLength deck.tape
   , value tracker $ show deck.position
   ]
@@ -134,7 +135,7 @@ updateView s deck = batch
 export
 setupView : St -> Deck -> Cmd Ev
 setupView s deck = batch
-  [ attr playBtn $ onClick $ PlayPause
+  [ attr playBtn $ onChecked PlayPause
   , attr recordBtn $ onChecked Record
   , attr rewindBtn $ onClick Rewind
   , attr ejectBtn $ onClick Eject
