@@ -2,3 +2,8 @@
 type = "local"
 path = "import/idris2-dom/js"
 ipkg = "js.ipkg"
+
+[custom.all.dom-mvc]
+type = "local"
+path = "import/idris2-dom-mvc"
+ipkg = "dom-mvc.ipkg"

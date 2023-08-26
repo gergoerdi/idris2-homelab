@@ -4,3 +4,6 @@
 [submodule "import/idris2-dom"]
 	path = import/idris2-dom
 	url = https://github.com/stefan-hoeck/idris2-dom/
+[submodule "import/idris2-dom-mvc"]
+	path = import/idris2-dom-mvc
+	url = https://github.com/gergoerdi/idris2-dom-mvc
