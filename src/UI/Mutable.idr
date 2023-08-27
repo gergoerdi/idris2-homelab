@@ -19,16 +19,16 @@ viewExternalState mut f = C $ \h => do
 
 public export
 mutableWidget :
-     {0 ext : Type}
+     {0 Ext : Type}
   -> (St : Type)
   -> (Ev : Type)
   -> (init : St)
-  -> (setup : St -> ext -> Cmd Ev)
-  -> (update : Ev -> St -> (St, ext -> ext))
-  -> (display : Ev -> St -> ext -> Cmd Ev)
-  -> (mut : Mutable JSIO ext)
+  -> (setup : St -> Ext -> Cmd Ev)
+  -> (update : Ev -> St -> (St, Ext -> Ext))
+  -> (display : Ev -> St -> Ext -> Cmd Ev)
+  -> (mut : Mutable JSIO Ext)
   -> Widget
-mutableWidget {ext = ext} st ev init setup update display mut = MkWidget
+mutableWidget {Ext = ext} st ev init setup update display mut = MkWidget
   { St = (st, ext -> ext)
   , Ev = ev
   , init = (init, id)
