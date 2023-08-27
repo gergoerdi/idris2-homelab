@@ -79,22 +79,21 @@ monitor = Id "tape-monitor"
 tapeList : Ref Tag.Div
 tapeList = Id "tape-cards"
 
-export
-update1 : Ev -> St -> St
-update1 Eject = id
-update1 (LoadTapes err_tapes) = case err_tapes of
+updateState : (St -> St) -> (St -> (St, Deck -> Deck))
+updateState f s = (f s, id)
+
+updateDeck : (Deck -> Deck) -> (St -> (St, Deck -> Deck))
+updateDeck f s = (s, f)
+
+update : Ev -> St -> (St, Deck -> Deck)
+update (PlayPause b) = updateDeck { playing := b }
+update (Record b) = updateDeck { recording := b }
+update Rewind = updateDeck { position := 0, playing := False, recording := False }
+update (TapeLoaded tape) = updateDeck { tape := Just tape, playing := False, recording := False }
+update (LoadTapes err_tapes) = updateState $ case err_tapes of
   Left err => id
   Right tapes => { tapes := tapes }
-update1 (LoadTape filename) = id -- TODO
-update1 _ = id
-
-export
-update2 : Ev -> St -> Deck -> Deck
-update2 (PlayPause b) _ = { playing := b }
-update2 Rewind _ = { position := 0, playing := False, recording := False }
-update2 (Record b) _ = { recording := b }
-update2 (TapeLoaded tape) _ = { tape := Just tape, playing := False, recording := False }
-update2 _ _ = id
+update _ = updateState id
 
 tapeCard : TapeMeta -> Node Ev
 tapeCard tape = div [class "card"]
@@ -167,4 +166,4 @@ display ev s deck = updateView s deck <+> case ev of
 
 public export
 widget : Mutable JSIO Deck -> Widget
-widget = mutableWidget St Ev (MkSt{ tapes = [] }) setupView update1 update2 display
+widget = mutableWidget St Ev (MkSt{ tapes = [] }) setupView update display

@@ -17,30 +17,25 @@ viewExternalState mut f = C $ \h => do
   es <- read mut
   run (f es) h
 
-export
-updateExternalState : {0 a : Type} -> Mutable JSIO a -> (ev -> st -> a -> a) -> (ev -> st -> Cmd ev')
-updateExternalState mut f ev s = cmd_ $ modify mut $ f ev s
-
 public export
 mutableWidget :
-     {0 a : Type}
+     {0 ext : Type}
   -> (St : Type)
   -> (Ev : Type)
   -> (init : St)
-  -> (setup : St -> a -> Cmd Ev)
-  -> (update1 : Ev -> St -> St)
-  -> (update2 : Ev -> St -> a -> a)
-  -> (display : Ev -> St -> a -> Cmd Ev)
-  -> (mut : Mutable JSIO a)
+  -> (setup : St -> ext -> Cmd Ev)
+  -> (update : Ev -> St -> (St, ext -> ext))
+  -> (display : Ev -> St -> ext -> Cmd Ev)
+  -> (mut : Mutable JSIO ext)
   -> Widget
-mutableWidget st ev init setup update1 update2 display mut = MkWidget
-  { St = st
+mutableWidget {ext = ext} st ev init setup update display mut = MkWidget
+  { St = (st, ext -> ext)
   , Ev = ev
-  , init = init
-  , setup = \s => viewExternalState mut $ setup s
-  , update = update1
-  , display = \ev, s => batch
-      [ updateExternalState mut update2 ev s
+  , init = (init, id)
+  , setup = \(s, _) => viewExternalState mut $ setup s
+  , update = \ev, (s, _) => update ev s
+  , display = \ev, (s, updateExt) => batch
+      [ cmd_ $ modify mut updateExt
       , viewExternalState mut $ display ev s
       ]
   }
