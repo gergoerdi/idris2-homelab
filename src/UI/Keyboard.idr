@@ -3,6 +3,7 @@ module UI.Keyboard
 import Emu.Keyboard
 
 import Web.MVC
+import Web.MVC.Event
 import Web.Html
 import Web.MVC.Widget
 
@@ -26,16 +27,25 @@ update : Ev -> St -> St
 update Blur = const empty
 update (Key press code) = setKeyState press code
 
-%foreign "javascript:lambda: setOnBlur"
+%foreign "javascript:lambda: (cb) => window.addEventListener('blur', () => cb())"
 prim__setOnBlur : IO () -> PrimIO ()
+
+%foreign "javascript:lambda: (cb) => window.addEventListener('keydown', (e) => cb(e)())"
+prim__setOnKeyDown : (KeyboardEvent -> IO ()) -> PrimIO ()
+
+%foreign "javascript:lambda: (cb) => window.addEventListener('keyup', (e) => cb(e)())"
+prim__setOnKeyUp : (KeyboardEvent -> IO ()) -> PrimIO ()
 
 public export
 setupEvents : Cmd Ev
 setupEvents = batch
-  [ attr Body $ Event . KeyDown $ Just . Key True . code
-  , attr Body $ Event . KeyUp $ Just . Key False . code
+  -- [ attr Window $ Event . KeyDown $ Just . Key True . code
+  -- , attr Window $ Event . KeyUp $ Just . Key False . code
   -- , attr Window $ onBlur Blur -- TODO: runtime type error
-  , C $ \enqueueEvent => liftIO $ primIO $ prim__setOnBlur $ runJS . enqueueEvent $ Blur
+  [ C $ \enqueueEvent => liftIO $ do
+      primIO $ prim__setOnBlur $ runJS . enqueueEvent $ Blur
+      primIO $ prim__setOnKeyDown $ runJS . (enqueueEvent . Key True . code <=< keyInfo)
+      primIO $ prim__setOnKeyUp $ runJS . (enqueueEvent . Key False . code <=< keyInfo)
   ]
 
 public export
