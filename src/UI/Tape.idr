@@ -132,6 +132,8 @@ updateView s deck = batch
   , attr playBtn $ checked deck.playing
   , attr tracker $ showAttr "max" $ maybe 0 tapeLength deck.tape
   , value tracker $ show deck.position
+  , attr monitor $ Str "data-state" $ if deck.recording then "write" else "read"
+  , attr monitor $ Bool "data-value" $ read deck
   ]
 
 export

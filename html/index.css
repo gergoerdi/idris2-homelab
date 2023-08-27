@@ -26,8 +26,24 @@ body {
 }
 
 #tape-monitor {
-    display: block;
     width: 2em;
+    min-height: 100%;
+}
+
+#tape-monitor[data-state="read"] {
+    background-color: #20c997;
+}
+
+#tape-monitor[data-state="read"][data-value] {
+    background-color: #198754;
+}
+
+#tape-monitor[data-state="write"] {
+    background-color: #dc3545;
+}
+
+#tape-monitor[data-state="write"][data-value] {
+    background-color: #fd7e14;
 }
 
 .centered {
