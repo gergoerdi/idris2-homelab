@@ -149,8 +149,12 @@ setupView s deck = batch
 export
 display : Ev -> St -> Deck -> Cmd Ev
 display ev s deck = updateView s deck <+> case ev of
+  PlayPause _ => cmd_ $ blur =<< castElementByRef {t = HTMLElement } playBtn
+  Record _ => cmd_ $ blur =<< castElementByRef {t = HTMLElement } recordBtn
+  Rewind => cmd_ $ blur =<< castElementByRef {t = HTMLElement } rewindBtn
   Eject => batch
     [ getJSON (tapeFile "tapes.json") LoadTapes
+    , cmd_ $ blur =<< castElementByRef {t = HTMLElement } ejectBtn
     , cmd_ $ showModal =<< castElementByRef {t = HTMLDialogElement} tapeselDlg
     ]
   LoadTapes (Left err) =>

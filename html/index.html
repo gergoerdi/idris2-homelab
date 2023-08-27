@@ -16,20 +16,20 @@
 
      <div class="flexrow">
        <div class="btn-group" role="group">
-         <button id="tape-btn-rewind" class="btn btn-outline-dark" type="button">
+         <button type="button" id="tape-btn-rewind" class="btn btn-outline-dark" tabindex="-1">
            <i class="bi bi-skip-backward-fill"></i>
          </button>
 
-         <input type="checkbox" class="btn-check" id="tape-btn-play" autocomplete="off"></input>
-         <label class="btn btn-outline-dark" for="tape-btn-play">
+         <input type="checkbox" id="tape-btn-play" class="btn-check" tabindex="-1" autocomplete="off"></input>
+         <label id="tape-btn-play-lbl" class="btn btn-outline-dark" for="tape-btn-play">
            <i class="bi bi-play-fill"></i>
          </label>
-         <input type="checkbox" class="btn-check" id="tape-btn-record" autocomplete="off"></input>
+         <input type="checkbox" id="tape-btn-record" class="btn-check" tabindex="-1" autocomplete="off"></input>
          <label class="btn btn-outline-dark" for="tape-btn-record">
            <i class="bi bi-record-fill"></i>
          </label>
          
-         <button id="tape-btn-eject" class="btn btn-outline-dark" type="button">
+         <button type="button" id="tape-btn-eject" class="btn btn-outline-dark" tabindex="-1">
            <i class="bi bi-eject-fill"></i>
          </button>
        </div>
