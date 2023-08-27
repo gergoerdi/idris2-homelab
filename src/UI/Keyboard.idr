@@ -4,6 +4,7 @@ import Emu.Keyboard
 
 import Web.MVC
 import Web.Html
+import Web.MVC.Widget
 
 %default total
 
@@ -29,8 +30,8 @@ update (Key press code) = setKeyState press code
 prim__setOnBlur : IO () -> PrimIO ()
 
 public export
-setupEvents : St -> Cmd Ev
-setupEvents s = batch
+setupEvents : Cmd Ev
+setupEvents = batch
   [ attr Body $ Event . KeyDown $ Just . Key True . code
   , attr Body $ Event . KeyUp $ Just . Key False . code
   -- , attr Window $ onBlur Blur -- TODO: runtime type error
@@ -45,3 +46,14 @@ public export
 display : Ev -> St -> Cmd Ev
 display Blur s = neutral
 display (Key press code) s = neutral
+
+export
+widget : (KeyState -> JSIO ()) -> Widget
+widget sink = MkWidget
+  { St = KeyState
+  , Ev = Ev
+  , init = empty
+  , setup = \_ => setupEvents
+  , update = update
+  , display = \_, s => cmd_ $ sink s
+  }

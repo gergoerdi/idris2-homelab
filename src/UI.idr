@@ -5,6 +5,7 @@ import Web.MVC
 -- import Web.MVC.Http
 -- import JS.Array
 -- import JS.Buffer
+import Web.MVC.Widget
 import Data.IORef
 
 import Emu.Tape
@@ -16,56 +17,17 @@ import UI.Mutable
 
 %default total
 
--- The real stuff is in `startUI`
-main : IO ()
-main = pure ()
-
-record St where
-  constructor MkSt
-  tape : Tape.St
-  keyboard : Keyboard.St
-
-public export
-data Ev : Type where
-  Init       : Ev
-  NewFrame   : Ev
-  TapeEv     : Tape.Ev -> Ev
-  KeyboardEv : Keyboard.Ev -> Ev
-
-update : UI.Ev -> UI.St -> UI.St
-update Init = id
-update NewFrame = id
-update (TapeEv ev) = { tape $= Tape.update1 ev }
-update (KeyboardEv ev) = { keyboard $= Keyboard.update ev }
-
-covering
-view : UI.Ev -> UI.St -> Deck -> Cmd UI.Ev
-view Init s deck = batch
-  [ TapeEv <$> Tape.setupView s.tape deck
-  , KeyboardEv <$> Keyboard.setupEvents s.keyboard
-  ]
-view NewFrame s deck = Tape.updateView s.tape deck
-view (TapeEv     ev) s deck = TapeEv     <$> Tape.display     ev s.tape deck
-view (KeyboardEv ev) s deck = KeyboardEv <$> Keyboard.display ev s.keyboard
+export
+addSetup : (widget : Widget) -> Cmd widget.Ev -> Widget
+addSetup widget cmd = { setup := \s => cmd <+> widget.setup s } widget
 
 public export
 covering
-startUI : IORef (UI.Ev -> JSIO ()) -> (KeyState -> JSIO ()) -> Mutable JSIO Deck -> IO ()
-startUI cell sinkKeyboard deck = runMVC update view' (putStrLn . dispErr) Init $ MkSt
-    { tape = startTape
-    , keyboard = init
-    }
+startUI : IORef (JSIO ()) -> (KeyState -> JSIO ()) -> Mutable JSIO Deck -> IO ()
+startUI cell sinkKeyboard deck = runWidget (putStrLn . dispErr) w'
   where
-    updateExt : UI.Ev -> UI.St -> Cmd UI.Ev
-    updateExt Init s = C $ \enqueueEvent => writeIORef cell enqueueEvent
-    updateExt NewFrame s = viewExternalState deck $ Tape.updateView s.tape
-    updateExt (TapeEv     ev) s = updateExternalState deck Tape.update2 ev s.tape
-    updateExt (KeyboardEv ev) s = neutral
+    w : Widget
+    w = Tape.widget deck <+> Keyboard.widget sinkKeyboard
 
-    view' = \ev, s => batch
-      [ updateExt ev s
-      , viewExternalState deck $ \deck => batch
-          [ view ev s deck
-          , Keyboard.pub sinkKeyboard s.keyboard
-          ]
-      ]
+    w' : Widget
+    w' = addSetup w $ C $ \h => writeIORef cell $ h $ Left Tape.NewFrame

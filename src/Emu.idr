@@ -106,7 +106,7 @@ startEmu mainBuf = do
   startVideo videoRAM
 
   cpu <- initCPU $ memoryMappedOnly $ HL2.MemoryMap.memoryMap machine
-  enqueueEvent_cell <- newIORef $ the (UI.Ev -> JSIO ()) $ \_ => pure ()
+  newFrame_cell <- newIORef $ the (JSIO ()) $ pure ()
   let runFrame : IO ()
       runFrame = do
         video_running <- get videoRunning
@@ -114,11 +114,11 @@ startEmu mainBuf = do
         untilNewFrame $ do
           cnt <- liftIO $ runInstruction cpu
           modify $ tickClock cnt
-        enqueueEvent <- readIORef enqueueEvent_cell
-        runJS $ enqueueEvent NewFrame
+        newFrame <- readIORef newFrame_cell
+        runJS newFrame
   _ <- setInterval (cast $ 1000 `div` FPS) runFrame
 
-  startUI enqueueEvent_cell sinkKeys $
+  startUI newFrame_cell sinkKeys $
     MkMutable
       { read = get deck
       , modify = \f => modify { deck $= f }

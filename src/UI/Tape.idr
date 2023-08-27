@@ -1,12 +1,14 @@
 module UI.Tape
 
 import Data.IORef
+import UI.Mutable
 
 import JSON.Simple.Derive
 
 import Web.MVC
 import Web.MVC.Util
 import Web.MVC.Http
+import Web.MVC.Widget
 import Web.Html
 
 import Text.HTML.Ref
@@ -31,8 +33,9 @@ record TapeMeta where
 %foreign "javascript:lambda: (url, cb) => load_audio_(url, cb)"
 prim__loadAudio : String -> (AudioBuffer -> IO ()) -> PrimIO ()
 
-export
+public export
 data Ev : Type where
+  NewFrame : Ev
   PlayPause : Bool -> Ev
   Record : Bool -> Ev
   Rewind : Ev
@@ -161,3 +164,7 @@ display ev s deck = updateView s deck <+> case ev of
           runJS . enqueueEvent . TapeLoaded $ tape
      ]
   _ => neutral
+
+public export
+widget : Mutable JSIO Deck -> Widget
+widget = mutableWidget St Ev (MkSt{ tapes = [] }) setupView update1 update2 display
