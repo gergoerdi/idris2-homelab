@@ -128,8 +128,8 @@ updateView s deck = batch
   , disabled recordBtn (isNothing deck.tape)
 
   -- , child playBtn $ span [ classes ["bi", if deck.playing then "bi-pause-fill" else "bi-play-fill"] ] []
-  , attr recordBtn $ checked deck.recording
-  , attr playBtn $ checked deck.playing
+  , checked recordBtn deck.recording
+  , checked playBtn deck.playing
   , attr tracker $ showAttr "max" $ maybe 0 tapeLength deck.tape
   , value tracker $ show deck.position
   , attr monitor $ Str "data-state" $ if deck.recording then "write" else "read"
