@@ -35,6 +35,7 @@ data Ev : Type where
   LoadTapes : Either HTTPError (List TapeMeta) -> Ev
   LoadTape : String -> Ev
   TapeLoaded : Tape -> Ev
+  NewTape : Ev
 
 record St where
   constructor MkSt
@@ -60,19 +61,34 @@ update (LoadTapes err_tapes) = updateState $ case err_tapes of
   Right tapes => { tapes := tapes }
 update _ = updateState id
 
-tapeCard : TapeMeta -> Node Ev
-tapeCard tape = div [class "card"]
-  [ div [class "card-body", onClick $ LoadTape (tapeFile tape.filename) ]
-    [ h5 [class "card-title"] [Text tape.title]
-    , p [class "card-text"] [Text $ fromMaybe "" tape.desc]
+icon : String -> Node ev
+icon s = span [classes ["bi", "bi-" <+> s]] []
+
+tapeCard : ev -> List (Node ev) -> List (Node ev) -> List (Node ev) -> Node ev
+tapeCard ev title body footer = div [class "card"] $
+  [ div [class "card-body", onClick ev]
+    [ h5 [class "card-title"] title
+    , p [class "card-text"] body
     ]
-  , div [class "card-footer"]
-    [ div [classes ["d-flex", "justify-content-between"]]
-      [ span [class "text-body-secondary"] [Text $ fromMaybe "" tape.footer]
-      , a [class "card-link", href (tapeFile tape.filename), download tape.filename ] [Text "Download"]
-      ]
+  ] ++
+  [ div [class "card-footer"] footer | not (null footer) ]
+
+loadTapeCard : TapeMeta -> Node Ev
+loadTapeCard tape = tapeCard (LoadTape (tapeFile tape.filename))
+  [Text tape.title]
+  [Text $ fromMaybe "" tape.desc]
+  [ div [classes ["d-flex", "justify-content-between"]]
+    [ span [class "text-body-secondary"] [Text $ fromMaybe "" tape.footer]
+    , a [class "card-link", href (tapeFile tape.filename), download tape.filename ]
+      [icon "file-earmark-arrow-down", Text "Download"]
     ]
   ]
+
+addTapeCard : Node Ev
+addTapeCard = tapeCard NewTape
+  [icon "file-earmark-plus", Text "New tape"]
+  []
+  []
 
 printError : HTTPError -> String
 printError Timeout = "connection timed out"
@@ -93,7 +109,7 @@ display ev s deck = case ev of
   LoadTapes (Left err) =>
     cmd_ $ putStrLn (printError err)
   LoadTapes (Right _) =>
-    children tapeList $ map tapeCard s.tapes
+    children tapeList $ map loadTapeCard s.tapes ++ [addTapeCard]
   LoadTape filename => batch
     [ C $ \enqueueEvent => do
         close =<< castElementByRef {t = HTMLDialogElement} dialog
