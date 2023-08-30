@@ -17,6 +17,10 @@ viewExternalState mut f = C $ \h => do
   es <- read mut
   run (f es) h
 
+export
+addSetup : (widget : Widget) -> Cmd widget.Ev -> Widget
+addSetup widget cmd = { setup := \s => cmd <+> widget.setup s } widget
+
 public export
 mutableWidget :
      {0 Ext : Type}

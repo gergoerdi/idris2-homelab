@@ -3,35 +3,18 @@ module UI.Tape
 import Data.IORef
 import UI.Mutable
 
-import JSON.Simple.Derive
-
 import Web.MVC
 import Web.MVC.Util
-import Web.MVC.Http
 import Web.MVC.Widget
 import Web.Html
 
 import Text.HTML.Ref
-import JS.Array
 
-import Paths
 import Web.Audio
 import Emu.Tape
+import UI.Tape.Selector
 
 %default total
-%language ElabReflection
-
-record TapeMeta where
-  constructor MkTapeMeta
-  filename : String
-  title : String
-  desc : Maybe String
-  footer : Maybe String
-
-%runElab derive "TapeMeta" [customFromJSON $ { replaceMissingKeysWithNull := True } defaultOptions]
-
-%foreign "javascript:lambda: (url, cb) => load_audio_(url, cb)"
-prim__loadAudio : String -> (AudioBuffer -> IO ()) -> PrimIO ()
 
 public export
 data Ev : Type where
@@ -40,19 +23,15 @@ data Ev : Type where
   Record : Bool -> Ev
   Rewind : Ev
   Eject : Ev
-  LoadTapes : Either HTTPError (List TapeMeta) -> Ev
-  LoadTape : String -> Ev
-  TapeLoaded : Tape -> Ev
 
 export
 record St where
   constructor MkSt
-  tapes : List TapeMeta
 
 public export
 startTape : St
 startTape = MkSt
-  { tapes = []
+  {
   }
 
 playBtn : Ref Tag.Input
@@ -70,14 +49,8 @@ ejectBtn = Id "tape-btn-eject"
 tracker : Ref Tag.Input
 tracker = Id "tape-range"
 
-tapeselDlg : Ref Tag.Dialog
-tapeselDlg = Id "tape-filesel"
-
 monitor : Ref Tag.Div
 monitor = Id "tape-monitor"
-
-tapeList : Ref Tag.Div
-tapeList = Id "tape-cards"
 
 updateState : (St -> St) -> (St -> (St, Deck -> Deck))
 updateState f s = (f s, id)
@@ -89,36 +62,7 @@ update : Ev -> St -> (St, Deck -> Deck)
 update (PlayPause b) = updateDeck { playing := b }
 update (Record b) = updateDeck { recording := b }
 update Rewind = updateDeck { position := 0, playing := False, recording := False }
-update (TapeLoaded tape) = updateDeck { tape := Just tape, playing := False, recording := False }
-update (LoadTapes err_tapes) = updateState $ case err_tapes of
-  Left err => id
-  Right tapes => { tapes := tapes }
 update _ = updateState id
-
-tapeCard : TapeMeta -> Node Ev
-tapeCard tape = div [class "card"]
-  [ div [class "card-body", onClick $ LoadTape (tapeFile tape.filename) ]
-    [ h5 [class "card-title"] [Text tape.title]
-    , p [class "card-text"] [Text $ fromMaybe "" tape.desc]
-    ]
-  , div [class "card-footer"]
-    [ div [classes ["d-flex", "justify-content-between"]]
-      [ span [class "text-body-secondary"] [Text $ fromMaybe "" tape.footer]
-      , a [class "card-link", href (tapeFile tape.filename), download tape.filename ] [Text "Download"]
-      ]
-    ]
-  ]
-
-printError : HTTPError -> String
-printError Timeout = "connection timed out"
-printError NetworkError = "error when connecting to server"
-printError (BadStatus m) = "server responded with bad status code: \{show m}"
-printError (JSONError str x) =
-  """
-  Error when decoding JSON string: \{str}
-
-  \{prettyErr str x}
-  """
 
 export
 updateView : St -> Deck -> Cmd ev
@@ -153,23 +97,16 @@ display ev s deck = updateView s deck <+> case ev of
   Record _ => cmd_ $ blur =<< castElementByRef {t = HTMLElement } recordBtn
   Rewind => cmd_ $ blur =<< castElementByRef {t = HTMLElement } rewindBtn
   Eject => batch
-    [ getJSON (tapeFile "tapes.json") LoadTapes
-    , cmd_ $ blur =<< castElementByRef {t = HTMLElement } ejectBtn
-    , cmd_ $ showModal =<< castElementByRef {t = HTMLDialogElement} tapeselDlg
+    [ cmd_ $ blur =<< castElementByRef {t = HTMLElement } ejectBtn
+    , cmd_ $ showModal =<< castElementByRef {t = HTMLDialogElement} UI.Tape.Selector.dialog
     ]
-  LoadTapes (Left err) =>
-    cmd_ $ putStrLn (printError err)
-  LoadTapes (Right _) =>
-    children tapeList $ map tapeCard s.tapes
-  LoadTape filename => batch
-    [ C $ \enqueueEvent => do
-        close =<< castElementByRef {t = HTMLDialogElement} tapeselDlg
-        liftIO $ primIO $ prim__loadAudio filename $ \audioBuffer => do
-          tape <- audioTape audioBuffer
-          runJS . enqueueEvent . TapeLoaded $ tape
-     ]
   _ => neutral
 
+tapeWidget : (JSIO () -> JSIO ()) -> Mutable JSIO Deck -> Widget
+tapeWidget registerFrameListener deck = addSetup w $ C $ \h => registerFrameListener $ h Tape.NewFrame
+  where
+    w = mutableWidget St Ev (MkSt{ }) setupView update display deck
+
 public export
-widget : Mutable JSIO Deck -> Widget
-widget = mutableWidget St Ev (MkSt{ tapes = [] }) setupView update display
+widget : (JSIO () -> JSIO ()) -> Mutable JSIO Deck -> Widget
+widget registerFrameListener = tapeWidget registerFrameListener <+> Tape.Selector.widget

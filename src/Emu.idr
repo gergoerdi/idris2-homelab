@@ -118,7 +118,7 @@ startEmu mainBuf = do
         runJS newFrame
   _ <- setInterval (cast $ 1000 `div` FPS) runFrame
 
-  startUI newFrame_cell sinkKeys $
+  startUI (writeIORef newFrame_cell) sinkKeys $
     MkMutable
       { read = get deck
       , modify = \f => modify { deck $= f }
