@@ -1,6 +1,7 @@
 module Emu
 
 import Data.IORef
+import Data.Array.Fast
 import JS.Util
 import JS.Buffer
 import Web.Interval
@@ -103,7 +104,7 @@ startEmu mainBuf = do
         , tapeOut = pure ()
         }
 
-  startVideo videoRAM
+  startVideo videoRAM'
 
   cpu <- initCPU $ memoryMappedOnly $ HL2.MemoryMap.memoryMap machine
   newFrame_cell <- newIORef $ the (JSIO ()) $ pure ()
@@ -114,6 +115,8 @@ startEmu mainBuf = do
         untilNewFrame $ do
           cnt <- liftIO $ runInstruction cpu
           modify $ tickClock cnt
+        for_ [0..0x400-1] $ \i =>
+          writeArray videoRAM' i =<< readArray videoRAM i
         newFrame <- readIORef newFrame_cell
         runJS newFrame
   _ <- setInterval (cast $ 1000 `div` FPS) runFrame
