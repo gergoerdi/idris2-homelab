@@ -30,7 +30,7 @@ namespace AudioTape
   read : AudioTape -> Time -> Bool
   read tape pos =
     let i = min (size tape.buffer) $ toIndex tape.sampleRate pos
-    in JS.Array.read tape.buffer (Element i ?minLT) > 0.03
+    in JS.Array.read tape.buffer (Element i ?minLT) > 0.08
 
 export
 data Tape : Type where
